@@ -1,6 +1,72 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 
 use strict;
 use warnings;
+use Getopt::Long qw(:config no_ignore_case);
+use IPC::Run3;
 
+our $verbosity = 0;
+our $version = "0.0";
+
+use constant { 
+	STATE_OK => 0,
+	STATE_WARNING => 1,
+	STATE_CRITICAL => 2,
+	STATE_UNKNOWN => 3,
+ };
+
+
+sub displayUsage {
+	#foobar strings
+}
+
+sub displayHelp {
+	#foobar strings
+}
+ 
+sub displayVersion {
+	# Get arcconf version, controller name, + version of plugin 
+}
+
+
+sub getAdapCfg {
+	
+}
+
+sub getPhysCfg {
+	
+}
+
+sub getLogCfg {
+	
+}
+
+
+sub exit {
+	
+}
+
+MAIN: {
+	my $controller = 1;
+	my @logDevices; 
+	my @physDevices;
+	my $sudo = "/usr/bin/sudo"; #check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
+	my $arcconf = "/usr/bin/arcconf";
+	
+	unless ( -e $arcconf or -x $sudo ) { print "Perm. denied!"; die; }
+	
+	if ( !(GetOptions(
+		"v|verbose" => sub {$verbosity = 1 },
+		"vv" => sub {$verbosity = 2},
+		"vvv" => sub {$verbosity = 3},
+		"h|help" => sub {displayHelp();},
+		"V|version" => sub {displayVersion();},
+		"C|controller=i" => \$controller,
+		"LD|logicaldevice=i@" => \@logDevices,
+		"PD|physicaldevice=i@" => \@physDevices, 
+		
+	)))	{
+		displayUsage();
+	}
+}
