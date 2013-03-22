@@ -32,21 +32,24 @@ sub displayVersion {
 }
 
 
-sub getAdapCfg {
+sub getControllerCfg {
 	
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
-	my $controller = $_[2]; 
+	my $controller = $_[2];
+	my $status = 0; 
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
 	print Dumper(@output) if $VERBOSITY == 3;
-
+	
+	
+	return $status;
 }
 
-sub getPhysCfg {
+sub getPhysDevCfg {
 	
 }
 
-sub getLogCfg {
+sub getLogDevCfg {
 	
 }
 
@@ -60,10 +63,21 @@ MAIN: {
 	my $controller = 1;
 	my @logDevices; 
 	my @physDevices;
-	my $sudo = '/usr/bin/sudo'; #check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
+	my $sudo = ''; #check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
 	my $arcconf = '/usr/bin/arcconf';
+	my $platform = "$^O\n";
 	
-	unless ( -e $arcconf or -x $sudo ) { print 'Perm. denied!'; die; }
+	# check platform
+	if ($platform eq "linux") {
+		$sudo = `which sudo`;
+		$arcconf = '/usr/bin/arcconf';
+		unless ( -e $arcconf or -x $sudo ) { print 'Perm. denied!'; die; }
+	} else {
+		unless ( -e $arcconf ) { print 'Perm. denied!'; die; }
+		$sudo = '';
+		$arcconf = 'C:\Programme\Adaptec\RemoteArcconf\arcconf.exe';
+	}
+	
 	
 	if ( !(GetOptions(
 		'v|verbose' => sub {$VERBOSITY = 1 },
@@ -74,9 +88,9 @@ MAIN: {
 		'C|controller=i' => \$controller,
 		'LD|logicaldevice=i@' => \@logDevices,
 		'PD|physicaldevice=i@' => \@physDevices, 
-		
+		'p|path=s' => \$arcconf 
 	)))	{
 		displayUsage();
 	}
-	getAdapCfg($sudo, $arcconf, $controller);
+	getControllerCfg($sudo, $arcconf, $controller);
 }
