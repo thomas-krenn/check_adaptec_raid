@@ -11,7 +11,7 @@ use Switch;
 
 our $VERBOSITY = 0;
 our $VERSION = '0.0';
-
+our $EXITSTATUS = 0;
 use constant { 
 	STATE_OK => 0,
 	STATE_WARNING => 1,
@@ -19,6 +19,19 @@ use constant {
 	STATE_UNKNOWN => 3,
  };
 
+# Returns StatusCode 0,1,2,3
+sub myStatus {
+	my $prevStatus = $_[0];
+	my $nextStatus = $_[1];
+	my $returnStatus = STATE_OK;
+	if ($prevStatus >= $nextStatus) {
+		$returnStatus = $prevStatus;
+	} else {
+		$returnStatus = $nextStatus;
+	}
+	
+	return $returnStatus
+}
 
 sub displayUsage {
 	#foobar strings
@@ -41,32 +54,49 @@ sub getControllerCfg {
 	my $temperature = $_[3];
 	my $status = 0; 
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
-	#$VERBOSITY = 3;
 	print Dumper(@output) if $VERBOSITY == 3;
 	my %hash;
 	my @linevalues;
+	
 	foreach my $line (@output) {
 		if(index($line, ':') != -1) {
 			@linevalues = split(/:/, $line);
 			$linevalues[0] =~ s/^\s+|\s+$//g;
 			$linevalues[1] =~ s/^\s+|\s+$//g;
 			$hash{$linevalues[0]} = $linevalues[1];
+			
 			switch($linevalues[0]) {
-				case "Controller Status" { if ($linevalues[1] ne "Optimal") { print "Wirkli Schlecht.\n" }}
-				case "Defunct disk drive count" { if ($linevalues[1] ne "0") { print "Gscheid Schlecht.\n" }}
+				case "Controller Status" { 
+					if ($linevalues[1] ne "Optimal") { 
+						print "Wirkli Schlecht.\n"	 
+					}
+				}
+				# <asdf=3 dfoooba=213 asdfas=3>
+				case "Defunct disk drive count" { 
+					if ($linevalues[1] ne "0") { 
+						print "Gscheid Schlecht.\n" 
+					}
+				}
 				case "Logical devices/Failed/Degraded" { 
-														my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
-														if ($degrad ne "/0/0") { print "Voi Schlecht.\n" }}
+					my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
+					if ($degrad ne "/0/0") { 
+						print "Voi Schlecht.\n" 
+					}
+				}
 				case "Temperature" {
-									my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
-					 				if ( $temp > $temperature) { print "Sau schlecht und sau has!\n"}}
-				case "Status" { if ($linevalues[1] ne "ZMM Optimal") { print "yuno optimal?\n" }}
-				else {}
+					my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
+					if ( $temp > $temperature) { 
+						print "Sau schlecht und sau has!\n"
+					}
+				}
+				case "Status" { 
+					if ($linevalues[1] ne "ZMM Optimal") { 
+						print "yuno optimal?\n" 
+					}
+				}
 			}
 		}
 	}
-	#print Dumper(%hash);
-	return $status;
 }
 
 sub getPhysDevCfg {
@@ -119,4 +149,5 @@ MAIN: {
 		displayUsage();
 	}
 	getControllerCfg($sudo, $arcconf, $controller, $temperature);
+	print myStatus(STATE_OK, STATE_UNKNOWN);
 }
