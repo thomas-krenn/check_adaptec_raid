@@ -6,6 +6,7 @@ use warnings;
 use Getopt::Long qw(:config no_ignore_case);
 use IPC::Run3;
 use Data::Dumper;
+use Switch;
 
 
 our $VERBOSITY = 0;
@@ -37,21 +38,34 @@ sub getControllerCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
+	my $temperature = $_[3];
 	my $status = 0; 
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
 	#$VERBOSITY = 3;
 	print Dumper(@output) if $VERBOSITY == 3;
-	my %hash; 
+	my %hash;
+	my @linevalues;
 	foreach my $line (@output) {
-		#my @test = grep{/Controller Status/} $line;
 		if(index($line, ':') != -1) {
-			my @linevalues = split(/:/, $line);
-			chomp($hash{$linevalues[0]} = $linevalues[1]);
+			@linevalues = split(/:/, $line);
+			$linevalues[0] =~ s/^\s+|\s+$//g;
+			$linevalues[1] =~ s/^\s+|\s+$//g;
+			$hash{$linevalues[0]} = $linevalues[1];
+			switch($linevalues[0]) {
+				case "Controller Status" { if ($linevalues[1] ne "Optimal") { print "Wirkli Schlecht.\n" }}
+				case "Defunct disk drive count" { if ($linevalues[1] ne "0") { print "Gscheid Schlecht.\n" }}
+				case "Logical devices/Failed/Degraded" { 
+														my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
+														if ($degrad ne "/0/0") { print "Voi Schlecht.\n" }}
+				case "Temperature" {
+									my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
+					 				if ( $temp > $temperature) { print "Sau schlecht und sau has!\n"}}
+				case "Status" { if ($linevalues[1] ne "ZMM Optimal") { print "yuno optimal?\n" }}
+				else {}
+			}
 		}
-		#   Controller Status                        : Optimal
-		#grep 
 	}
-	print Dumper(%hash);
+	#print Dumper(%hash);
 	return $status;
 }
 
@@ -76,7 +90,8 @@ MAIN: {
 	my $sudo = ''; #check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
 	my $arcconf = '';
 	my $platform = $^O;
- 
+ 	my $temperature = ''; 
+ 	
 	# check platform
 	if ($platform eq 'linux') {
 		chomp($sudo= `which sudo`);
@@ -98,10 +113,10 @@ MAIN: {
 		'C|controller=i' => \$controller,
 		'LD|logicaldevice=i@' => \@logDevices,
 		'PD|physicaldevice=i@' => \@physDevices, 
+		'T|temperature=s' => \$temperature,
 		'p|path=s' => \$arcconf 
 	)))	{
 		displayUsage();
 	}
-	
-	getControllerCfg($sudo, $arcconf, $controller);
+	getControllerCfg($sudo, $arcconf, $controller, $temperature);
 }
