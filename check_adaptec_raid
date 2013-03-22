@@ -65,16 +65,16 @@ MAIN: {
 	my @physDevices;
 	my $sudo = ''; #check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
 	my $arcconf = '';
-	my $platform = "$^O";
-	
+	my $platform = $^O;
+ 
 	# check platform
-	if ($platform eq "linux") {
-		$sudo = `which sudo`;
+	if ($platform eq 'linux') {
+		chomp($sudo= `which sudo`);
 		$arcconf = '/usr/bin/arcconf';
-		print "testfoobar";
-		unless ( -e $arcconf or -x $sudo ) { print 'Perm. denied!'; die; }
+		print $sudo;
+		unless ( -e $arcconf || -x $sudo ) { print "Permission denied or File not found!\n"; die; }
 	} else {
-		unless ( -e $arcconf ) { print 'Perm. denied!'; die; }
+		unless ( -e $arcconf ) { print "Permission denied or File not found!\n"; die; }
 		$sudo = '';
 		$arcconf = 'C:\Programme\Adaptec\RemoteArcconf\arcconf.exe';
 	}
