@@ -39,9 +39,19 @@ sub getControllerCfg {
 	my $controller = $_[2];
 	my $status = 0; 
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
+	#$VERBOSITY = 3;
 	print Dumper(@output) if $VERBOSITY == 3;
-	
-	
+	my %hash; 
+	foreach my $line (@output) {
+		#my @test = grep{/Controller Status/} $line;
+		if(index($line, ':') != -1) {
+			my @linevalues = split(/:/, $line);
+			chomp($hash{$linevalues[0]} = $linevalues[1]);
+		}
+		#   Controller Status                        : Optimal
+		#grep 
+	}
+	print Dumper(%hash);
 	return $status;
 }
 
@@ -71,7 +81,6 @@ MAIN: {
 	if ($platform eq 'linux') {
 		chomp($sudo= `which sudo`);
 		$arcconf = '/usr/bin/arcconf';
-		print $sudo;
 		unless ( -e $arcconf || -x $sudo ) { print "Permission denied or File not found!\n"; die; }
 	} else {
 		unless ( -e $arcconf ) { print "Permission denied or File not found!\n"; die; }
@@ -93,5 +102,6 @@ MAIN: {
 	)))	{
 		displayUsage();
 	}
+	
 	getControllerCfg($sudo, $arcconf, $controller);
 }
