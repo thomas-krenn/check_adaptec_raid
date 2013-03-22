@@ -64,13 +64,14 @@ MAIN: {
 	my @logDevices; 
 	my @physDevices;
 	my $sudo = ''; #check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
-	my $arcconf = '/usr/bin/arcconf';
-	my $platform = "$^O\n";
+	my $arcconf = '';
+	my $platform = "$^O";
 	
 	# check platform
 	if ($platform eq "linux") {
 		$sudo = `which sudo`;
 		$arcconf = '/usr/bin/arcconf';
+		print "testfoobar";
 		unless ( -e $arcconf or -x $sudo ) { print 'Perm. denied!'; die; }
 	} else {
 		unless ( -e $arcconf ) { print 'Perm. denied!'; die; }
