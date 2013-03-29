@@ -56,7 +56,8 @@ sub getControllerCfg {
 	my $arcconf = $_[1];
 	my $controller = $_[2];
 	my $temperature = $_[3];
-	my $status = 0; 
+	my $status = 0;
+	my $statusMessage = "";
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
 	print Dumper(@output) if $VERBOSITY == 3;
 	my %hash;
@@ -73,34 +74,34 @@ sub getControllerCfg {
 				case "Controller Status" { 
 					if ($linevalues[1] ne "Optimal") { 
 						$status = myStatus($status, STATE_CRITICAL);
-						print "Wirkli Schlecht.\n"	 
+						$statusMessage .= "Controller Status not Optimal!";	 
 					}
 				}
 				# <asdf=3 dfoooba=213 asdfas=3>
 				case "Defunct disk drive count" { 
 					if ($linevalues[1] ne "0") { 
 						$status = myStatus($status, STATE_CRITICAL);
-						print "Gscheid Schlecht.\n" 
+						$statusMessage .= "" 
 					}
 				}
 				case "Logical devices/Failed/Degraded" { 
 					my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
 					if ($degrad ne "/0/0") { 
-						$status = myStatus($status, STATE_CRITICAL);
-						print "Voi Schlecht.\n" 
+						$status = myStatus($status, STATE_WARNING);
+						$statusMessage .= "" 
 					}
 				}
 				case "Temperature" {
 					my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
 					if ( $temp > $temperature) {
 						$status = myStatus($status, STATE_CRITICAL); 
-						print "Sau schlecht und sau has!\n"
+						$statusMessage .= ""
 					}
 				}
 				case "Status" { 
 					if ($linevalues[1] ne "ZMM Optimal") { 
 						$status = myStatus($status, STATE_CRITICAL);
-						print "yuno optimal?\n" 
+						$statusMessage .= ""
 					}
 				}
 			}
@@ -111,7 +112,7 @@ sub getControllerCfg {
 	if ($status eq 0) {
 		return myExit("Controller Status: OK", $status)
 	} else {
-		return myExit("Error String!!!!!", $status)
+		return myExit($statusMessage, $status)
 	}
 }
 
