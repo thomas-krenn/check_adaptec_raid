@@ -74,34 +74,49 @@ sub getControllerCfg {
 				case "Controller Status" { 
 					if ($linevalues[1] ne "Optimal") { 
 						$status = myStatus($status, STATE_CRITICAL);
-						$statusMessage .= "Controller Status not Optimal!";	 
+						if ($VERBOSITY == 0) {$statusMessage .= ""; }
+						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
+						if ($VERBOSITY == 2) {$statusMessage .= ""; }
+						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
 					}
 				}
 				# <asdf=3 dfoooba=213 asdfas=3>
 				case "Defunct disk drive count" { 
 					if ($linevalues[1] ne "0") { 
 						$status = myStatus($status, STATE_CRITICAL);
-						$statusMessage .= "" 
+						if ($VERBOSITY == 0) {$statusMessage .= ""; }
+						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
+						if ($VERBOSITY == 2) {$statusMessage .= ""; }
+						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
 					}
 				}
 				case "Logical devices/Failed/Degraded" { 
 					my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
 					if ($degrad ne "/0/0") { 
 						$status = myStatus($status, STATE_WARNING);
-						$statusMessage .= "" 
+						if ($VERBOSITY == 0) {$statusMessage .= ""; }
+						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
+						if ($VERBOSITY == 2) {$statusMessage .= ""; }
+						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
 					}
 				}
 				case "Temperature" {
 					my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
 					if ( $temp > $temperature) {
 						$status = myStatus($status, STATE_CRITICAL); 
-						$statusMessage .= ""
+						if ($VERBOSITY == 0) {$statusMessage .= ""; }
+						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
+						if ($VERBOSITY == 2) {$statusMessage .= ""; }
+						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
 					}
 				}
 				case "Status" { 
 					if ($linevalues[1] ne "ZMM Optimal") { 
 						$status = myStatus($status, STATE_CRITICAL);
-						$statusMessage .= ""
+						if ($VERBOSITY == 0) {$statusMessage .= ""; }
+						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
+						if ($VERBOSITY == 2) {$statusMessage .= ""; }
+						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
 					}
 				}
 			}
@@ -163,5 +178,4 @@ MAIN: {
 		displayUsage();
 	}
 	getControllerCfg($sudo, $arcconf, $controller, $temperature);
-	print myStatus(STATE_OK, STATE_UNKNOWN);
 }
