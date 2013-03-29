@@ -80,7 +80,6 @@ sub getControllerCfg {
 						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
 					}
 				}
-				# <asdf=3 dfoooba=213 asdfas=3>
 				case "Defunct disk drive count" { 
 					if ($linevalues[1] ne "0") { 
 						$status = myStatus($status, STATE_CRITICAL);
@@ -125,10 +124,11 @@ sub getControllerCfg {
 	}
 	# Wenn Status hier nu immer OK is dann print "Controller Status: OK
 	if ($status eq 0) {
-		return myExit("Controller Status: OK", $status)
+		print "Controller Status: OK";
 	} else {
-		return myExit($statusMessage, $status)
+		print $statusMessage;
 	}
+	return $status
 }
 
 
