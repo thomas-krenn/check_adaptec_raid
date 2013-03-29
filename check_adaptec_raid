@@ -33,6 +33,11 @@ sub myStatus {
 	return $returnStatus
 }
 
+sub myExit {
+		print $_[1];
+		exit ($_[2]);
+}
+
 sub displayUsage {
 	#foobar strings
 }
@@ -44,7 +49,6 @@ sub displayHelp {
 sub displayVersion {
 	# Get arcconf VERSION, controller name, + VERSION of plugin 
 }
-
 
 sub getControllerCfg {
 	
@@ -68,50 +72,59 @@ sub getControllerCfg {
 			switch($linevalues[0]) {
 				case "Controller Status" { 
 					if ($linevalues[1] ne "Optimal") { 
+						$status = myStatus($status, STATE_CRITICAL);
 						print "Wirkli Schlecht.\n"	 
 					}
 				}
 				# <asdf=3 dfoooba=213 asdfas=3>
 				case "Defunct disk drive count" { 
 					if ($linevalues[1] ne "0") { 
+						$status = myStatus($status, STATE_CRITICAL);
 						print "Gscheid Schlecht.\n" 
 					}
 				}
 				case "Logical devices/Failed/Degraded" { 
 					my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
 					if ($degrad ne "/0/0") { 
+						$status = myStatus($status, STATE_CRITICAL);
 						print "Voi Schlecht.\n" 
 					}
 				}
 				case "Temperature" {
 					my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
-					if ( $temp > $temperature) { 
+					if ( $temp > $temperature) {
+						$status = myStatus($status, STATE_CRITICAL); 
 						print "Sau schlecht und sau has!\n"
 					}
 				}
 				case "Status" { 
 					if ($linevalues[1] ne "ZMM Optimal") { 
+						$status = myStatus($status, STATE_CRITICAL);
 						print "yuno optimal?\n" 
 					}
 				}
 			}
 		}
+		
+	}
+	# Wenn Status hier nu immer OK is dann print "Controller Status: OK
+	if ($status eq 0) {
+		return myExit("Controller Status: OK", $status)
+	} else {
+		return myExit("Error String!!!!!", $status)
 	}
 }
+
 
 sub getPhysDevCfg {
 	
 }
 
+
 sub getLogDevCfg {
 	
 }
 
-
-sub myExit {
-		print $_[1];
-		exit ($_[2]);
-}
 
 MAIN: {
 	my $controller = 1;
