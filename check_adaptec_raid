@@ -133,99 +133,69 @@ sub getControllerCfg {
 
 
 sub getPhysDevCfg {
-	# für MAIN: getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
-	my $controller = $_[2];
-	my $devices = $_[3];
-	my $status = 0;
-	my $statusMessage = "";
-	my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-	print Dumper(@output) if $VERBOSITY == 3;
-	my %hash;
-	my @linevalues;
-	
-	my $app = "$sudo $arcconf";
-	my @in = ('GETCONFIG', $controller, 'PD');
-	my $in = join "\n", @in;
+    my $controller = $_[2];
+    my $devices = $_[3];
+    my $devicenum = -1;
+    my $status = 0;
+    my $statusMessage = "";
+    my @output = `$sudo $arcconf GETCONFIG $controller PD`;
+    print Dumper(@output) if $VERBOSITY == 3;
+    my %hash;
+    my @linevalues;
 
-	my $out;
-	my $err;
-	run3 [$app], \$in, \$out, \$err;
-	print $out;
-	
+    foreach my $line (@output) {
 =begin comment
+            ($devicenum) = $line =~ /(^[0-9]+)/;
+            if ($devicenum ne -1) {
+                    print "Device #".$devicenum."\n";
+            }
+            
+            $txt = '        Device #0';
 
-	foreach my $line (@output) {
-		if(index($line, ':') != -1) {
-			@linevalues = split(/:/, $line);
-			$linevalues[0] =~ s/^\s+|\s+$//g;
-			$linevalues[1] =~ s/^\s+|\s+$//g;
-			$hash{$linevalues[0]} = $linevalues[1];
-			
-			my ($devnum) = $linevalues[1] =~ /(^[0-9]+)/;
-			print "Device #".$devnum;
-
-			switch($linevalues[0]) {
-				case "Controller Status" { 
-					if ($linevalues[1] ne "Optimal") { 
-						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= ""; }
-						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
-						if ($VERBOSITY == 2) {$statusMessage .= ""; }
-						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
-					}
-				}
-				case "Defunct disk drive count" { 
-					if ($linevalues[1] ne "0") { 
-						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= ""; }
-						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
-						if ($VERBOSITY == 2) {$statusMessage .= ""; }
-						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
-					}
-				}
-				case "Logical devices/Failed/Degraded" { 
-					my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
-					if ($degrad ne "/0/0") { 
-						$status = myStatus($status, STATE_WARNING);
-						if ($VERBOSITY == 0) {$statusMessage .= ""; }
-						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
-						if ($VERBOSITY == 2) {$statusMessage .= ""; }
-						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
-					}
-				}
-				case "Temperature" {
-					my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
-					if ( $temp > $temperature) {
-						$status = myStatus($status, STATE_CRITICAL); 
-						if ($VERBOSITY == 0) {$statusMessage .= ""; }
-						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
-						if ($VERBOSITY == 2) {$statusMessage .= ""; }
-						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
-					}
-				}
-				case "Status" { 
-					if ($linevalues[1] ne "ZMM Optimal") { 
-						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= ""; }
-						if ($VERBOSITY == 1) {$statusMessage .= ""; }	
-						if ($VERBOSITY == 2) {$statusMessage .= ""; }
-						if ($VERBOSITY == 3) {$statusMessage .= ""; } 
-					}
-				}
-			}
-		}
-		
-	}
-	# Wenn Status hier nu immer OK is dann print "Physical Device Status: OK
-	if ($status eq 0) {
-		print "Physical Device Status: OK";
-	} else {
-		print $statusMessage;
-	}
-	return $status
+            if ($txt =~ m/(\tDevice #)([0-9]+)/is)
+            {
+               $word1=$1;
+                $int1=$2;
+                print "($word1) ($int1) \n";
+            }
 =cut
+            if(index($line, ':') != -1) {
+                    @linevalues = split(/:/, $line);
+                    $linevalues[0] =~ s/^\s+|\s+$//g;
+                    $linevalues[1] =~ s/^\s+|\s+$//g;
+                    $hash{$linevalues[0]} = $linevalues[1];
+
+                    switch($linevalues[0]) {
+                            case "State" {
+                                    if ($linevalues[1] ne "Online") {
+                                            $status = myStatus($status, STATE_CRITICAL);
+                                            if ($VERBOSITY == 0) {$statusMessage .= ""; }
+                                            if ($VERBOSITY == 1) {$statusMessage .= ""; }
+                                            if ($VERBOSITY == 2) {$statusMessage .= ""; }
+                                            if ($VERBOSITY == 3) {$statusMessage .= ""; }
+                                    }
+                            }
+                            case "S.M.A.R.T." {
+                                    if ($linevalues[1] ne "No") {
+                                            $status = myStatus($status, STATE_CRITICAL);
+                                            if ($VERBOSITY == 0) {$statusMessage .= ""; }
+                                            if ($VERBOSITY == 1) {$statusMessage .= ""; }
+                                            if ($VERBOSITY == 2) {$statusMessage .= ""; }
+                                            if ($VERBOSITY == 3) {$statusMessage .= ""; }
+                                    }
+                            }
+                    }
+            }
+    }
+    # Wenn Status hier nu immer OK is dann print "Physical Device Status: OK
+    if ($status eq 0) {
+            print "Physical Device Status: OK";
+    } else {
+            print $statusMessage;
+    }
+    return $status
 }
 
 
@@ -264,7 +234,7 @@ MAIN: {
 		if ($arcconf eq '') {
 			$arcconf = '/usr/bin/arcconf';
 		}
-		unless ( -e $arcconf || -x $sudo ) { print "Permission denied or file not found!\n"; die; }
+		unless ( -e $arcconf && -x $sudo ) { print "Permission denied or file not found!\n"; die; }
 	} else {
 		$sudo = '';
 		if ($arcconf eq '') {
