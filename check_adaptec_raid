@@ -153,25 +153,21 @@ sub getPhysDevCfg {
     my $controller = $_[2];
     my @devices = $_[3];
     my $devicenum = -1;
-    my $status = 0;
-    my $statusMessage = "Physical Device Status: ";
+    my $status = 0; #Return Status
+    my $statusMessage = "Physical Device Status: "; # Return String
     my @faildevices;
-    #my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-    my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output_fails`;
+    my @output = `$sudo $arcconf GETCONFIG $controller PD`;
     my %hash;
     my @linevalues;
+    
     foreach my $line (@output) {
         if($line =~ /(Device #)([0-9]+)/) {
         	if(!defined($devices[0])) {
-        		# keine devices explizit angegeben, überprüfe alle
         		$devicenum = $2;
         	} else {
-    			# es sind devices angegeben, prüfe nur die
         		if(grep {$_ eq $2} @devices) {
-        			# das aktuell gefundene soll geprüft werden
         			$devicenum = $2;
-        		} else { 
-        			# das aktuelle soll übersprungen werden
+        		} else {
         			$devicenum = -1;
         		}
         	}
@@ -183,6 +179,8 @@ sub getPhysDevCfg {
             $hash{$linevalues[0]} = $linevalues[1];
 
             switch($linevalues[0]) {
+            
+            	# Main disk status (Online/Offline?)
                 case "State" {
                     if ($linevalues[1] ne "Online") {
                     	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
@@ -192,15 +190,19 @@ sub getPhysDevCfg {
                         if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum is not online."; }
                     }
                 }
+            	
+            	# Overall S.M.A.R.T. status
                 case "S.M.A.R.T." {
                     if ($linevalues[1] ne "No") {
                     	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
                     	}
                     	$status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum: S.M.A.R.T. error."; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum: S.M.A.R.T. status not ok."; }
                     }
                 }
+            	
+            	# Check if any S.M.A.R.T. warnings occured
                 case "S.M.A.R.T. warnings" {
                     if ($linevalues[1] ne "0") {
                     	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
@@ -211,6 +213,8 @@ sub getPhysDevCfg {
                         if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warnings is more than zero."; }
                     }
                 }
+            	
+            	# Look for bad device segments
                 case "Failed logical device segments" {
                 	if ($linevalues[1] eq "True") {
                     	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
@@ -223,6 +227,8 @@ sub getPhysDevCfg {
             }
         }
     }
+    
+    # Status output
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
     	if ($status eq 1) {
@@ -231,7 +237,6 @@ sub getPhysDevCfg {
     		$statusMessage = "CRITICAL: Problems with $faildevicenum physical disk(s)."
     	}
     }
-    # Wenn Status hier nu immer OK is dann print "Physical Device Status: OK"
 	if ($status eq 0) {
 		print $statusMessage . "OK";
 	} else {
@@ -250,22 +255,18 @@ sub getLogDevCfg {
     my $status = 0;
     my $statusMessage = "Logical Device Status: ";
     my @faildevices;
-    #my @output = `$sudo $arcconf GETCONFIG $controller LD`;
-    my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/logical_all_output`;
+    my @output = `$sudo $arcconf GETCONFIG $controller LD`;
     my %hash;
     my @linevalues;
+   
     foreach my $line (@output) {
         if($line =~ /(Logical device number )([0-9]+)/) {
         	if(!defined($devices[0])) {
-        		# keine devices explizit angegeben, überprüfe alle
         		$devicenum = $2;
         	} else {
-    			# es sind devices angegeben, prüfe nur die
         		if(grep {$_ eq $2} @devices) {
-        			# das aktuell gefundene soll geprüft werden
         			$devicenum = $2;
-        		} else { 
-        			# das aktuelle soll übersprungen werden
+        		} else {
         			$devicenum = -1;
         		}
         	}
@@ -277,6 +278,8 @@ sub getLogDevCfg {
             $hash{$linevalues[0]} = $linevalues[1];
 
             switch($linevalues[0]) {
+            
+            	# Main logical device status (Optimal/Failed?)
                 case "Status of logical device" {
                     if ($linevalues[1] ne "Optimal") {
                     	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
@@ -286,6 +289,8 @@ sub getLogDevCfg {
                         if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Status of logical disk $devicenum is not optimal."; }
                     }
                 }
+            	
+            	# Check for failed stripes
                 case "Failed stripes" {
                     if ($linevalues[1] ne "No") {
                     	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
@@ -298,6 +303,8 @@ sub getLogDevCfg {
             }
         }
     }
+    
+    # Status output
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
     	if ($status eq 1) {
@@ -322,6 +329,7 @@ MAIN: {
 	my @physDevices;
 	my $sudo = ''; # check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
 	my $arcconf = '';
+	my @returnCodes;
 	my $platform = $^O;
  	my $temperature = 40; 
  	my $zmm = 1; # boolean
@@ -341,14 +349,26 @@ MAIN: {
 	)))	{
 		displayUsage();
 	}
+ 	
+ 	# Imput validation
+ 	if(!$controller =~ /(^[0-9]+)/) {
+ 		print "controller gibts ned?"; die;
+ 	} else if(!$temperature =~ /(^[0-9]+)/) {
+ 		print "temperatur is a schaß"; die;
+ 	} else if(!$path =~ /.{0,1}(\/{0,1}[a-zA-Z0-9]\/{0,1})/) {
+ 		# ned fertig
+ 		print "wo soin des hingeh"; die;
+ 	} else if(!$zmm =~ /(^[0-1]+)/) {
+ 		print "boolean ba zmm bitte"; die;
+ 	}
 
-	# check platform
+	# Check platform
 	if ($platform eq 'linux') {
 		chomp($sudo= `which sudo`);
 		if ($arcconf eq '') {
 			$arcconf = '/usr/bin/arcconf';
 		}
-		#unless ( -e $arcconf && -x $sudo ) { print "Permission denied or file not found!\n"; die; }
+		unless ( -e $arcconf && -x $sudo ) { print "Permission denied or file not found!\n"; die; }
 	} else {
 		$sudo = '';
 		if ($arcconf eq '') {
@@ -356,7 +376,17 @@ MAIN: {
 		}
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
-	#getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
-	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
-	getLogDevCfg($sudo, $arcconf, $controller, @logDevices);
+	
+	# Process status requests and get return codes
+	my $currentReturnCode;
+	$currentReturnCode = getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
+	push(@returnCodes, $currentReturnCode);
+	$currentReturnCode = getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	push(@returnCodes, $currentReturnCode);
+	$currentReturnCode = getLogDevCfg($sudo, $arcconf, $controller, @logDevices);
+	push(@returnCodes, $currentReturnCode);
+	
+	# Highest status code to return
+	# STATE_UNKNOWN = 3 Problem?
+	return (sort { $b <=> $a } @returnCodes)[0];
 }
