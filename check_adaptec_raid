@@ -168,25 +168,26 @@ sub getPhysDevCfg {
     my @devices = $_[3];
     my $devicenum = -1;
     my $status = 0;
-    my $statusMessage = "Physical Device Status ";
+    my $statusMessage = "Physical Device Status: ";
+    my @faildevices;
     #my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-    my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output`;
+    my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output_fails`;
     my %hash;
     my @linevalues;
     foreach my $line (@output) {
         if($line =~ /(Device #)([0-9]+)/) {
         	if(!defined($devices[0])) {
-        		print "ned do";
-        		
-        	} else { print "do"; print @devices; }
-        	if(grep {$_ eq $2} @devices) {
-        		print "ned drin";
-        	} else { print "drin"; }
-        	if(1) {
+        		# keine devices explizit angegeben, überprüfe alle
         		$devicenum = $2;
-        		print "Device found: $devicenum \n";
         	} else {
-        		$devicenum = -1;
+    			# es sind devices angegeben, prüfe nur die
+        		if(grep {$_ eq $2} @devices) {
+        			# das aktuell gefundene soll geprüft werden
+        			$devicenum = $2;
+        		} else { 
+        			# das aktuelle soll übersprungen werden
+        			$devicenum = -1;
+        		}
         	}
         }
         if($devicenum ne -1 && index($line, ':') != -1) {
@@ -198,26 +199,53 @@ sub getPhysDevCfg {
             switch($linevalues[0]) {
                 case "State" {
                     if ($linevalues[1] ne "Online") {
-                            $status = myStatus($status, STATE_CRITICAL);
-                            if ($VERBOSITY >= 0) {$statusMessage .= "CRITICAL: Disk $devicenum is not online."; }
+                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    		push(@faildevices, $devicenum);
+                    	}
+                        $status = myStatus($status, STATE_CRITICAL);
+                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum is not online. "; }
                     }
                 }
                 case "S.M.A.R.T." {
                     if ($linevalues[1] ne "No") {
-                            $status = myStatus($status, STATE_CRITICAL);
-                            if ($VERBOSITY >= 0) {$statusMessage .= "CRITICAL: Disk $devicenum: S.M.A.R.T. error."; }
+                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    		push(@faildevices, $devicenum);
+                    	}
+                    	$status = myStatus($status, STATE_CRITICAL);
+                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum: S.M.A.R.T. error. "; }
+                    }
+                }
+                case "S.M.A.R.T. warnings" {
+                    if ($linevalues[1] ne "0") {
+                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    		push(@faildevices, $devicenum);
+                    	}
+                        $status = myStatus($status, STATE_WARNING);
+                        if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warning. "; }
+                        if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warnings is more than zero. "; }
                     }
                 }
                 case "Failed logical device segments" {
                 	if ($linevalues[1] eq "True") {
+                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    		push(@faildevices, $devicenum);
+                    	}
                         $status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY >= 0) {$statusMessage .= "CRITICAL: Disk $devicenum has failed logical device segments."; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum has failed logical device segments."; }
                 	}
                 }
             }
         }
     }
-    # Wenn Status hier nu immer OK is dann print "Physical Device Status: OK
+    my $faildevicenum = scalar(@faildevices);
+    if ($VERBOSITY eq 0 && $faildevicenum > 0) {
+    	if ($status eq 1) {
+    		$statusMessage = "WARNING: Problems with $faildevicenum physical disk(s). ";
+    	} else {
+    		$statusMessage = "CRITICAL: Problems with $faildevicenum physical disk(s). "
+    	}
+    }
+    # Wenn Status hier nu immer OK is dann print "Physical Device Status: OK"
 	if ($status eq 0) {
 		print $statusMessage . "OK";
 	} else {
@@ -273,5 +301,5 @@ MAIN: {
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
 	#getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
-	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
 }
