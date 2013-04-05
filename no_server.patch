@@ -1,19 +1,19 @@
---- check_adaptec_raid	2013-04-05 09:06:19.543424702 +0200
-+++ check_adaptec_raid_cat	2013-04-05 09:09:57.607419922 +0200
+--- check_adaptec_raid	2013-04-05 10:11:33.963339040 +0200
++++ check_adaptec_raid_cat	2013-04-05 10:14:12.627335566 +0200
 @@ -59,7 +59,7 @@
- 	my $temperature = $_[3];
+ 	my $zmm = $_[4];
  	my $status = 0; # Return Status
  	my $statusMessage = "Controller Status "; # Return String
 -	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
 +	my @output = `cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/controller_output`; #seems to parse every line in its own variable
- 	#print Dumper(@output) if $VERBOSITY == 3;
  	my %hash;
  	my @linevalues;
-@@ -255,6 +255,6 @@
+ 	
+@@ -259,6 +259,6 @@
  		}
  		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
  	}
--	#getControllerCfg($sudo, $arcconf, $controller, $temperature);
-+	getControllerCfg($sudo, $arcconf, $controller, $temperature);
+-	#getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
++	getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
  	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
  }
