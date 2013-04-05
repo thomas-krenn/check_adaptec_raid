@@ -9,7 +9,7 @@ use Switch;
 
 
 our $VERBOSITY = 0;
-our $VERSION = '0.0';
+our $VERSION = '0.1.3.4.6.233-ALPHA';
 our $EXITSTATUS = 0;
 use constant { 
 	STATE_OK => 0,
@@ -45,9 +45,9 @@ sub displayHelp {
 	#foobar strings
 }
  
-# TODO: implement arcconf 1 GETVERSION
 # Prints the Name, Version of the Plugin
 # Also Prints the name, version of arcconf and the version of the RAID-Controller
+# TODO: implement arcconf 1 GETVERSION
 sub displayVersion {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
@@ -61,7 +61,13 @@ sub displayVersion {
 	}
 }
 
-
+# Returns Information about the Adaptec RAID-Controller itsself:
+#		- Controller Status
+#		- Defunctional Disks
+#		- Logical Devices which have failed/are degraded
+#		- Temperature
+# 		- Status of ZMM if present
+# TODO: Nagios Dev Guidelines correct Threshold implementation (currently just takes > for warning and +20% for critical)
 sub getControllerCfg {
 	
 	my $sudo = $_[0];
@@ -149,7 +155,6 @@ sub getControllerCfg {
 		
 	}
 	
-	# Wenn Status hier nu immer OK is dann print "Controller Status: OK
 	if ($status eq 0) {
 		print $statusMessage . "OK";
 	} else {
