@@ -365,7 +365,8 @@ MAIN: {
 	my $arcconf = '';
 	my @returnCodes;
 	my $platform = $^O;
- 	my $temperature = 40; 
+ 	my $temperature = 40;
+ 	my $returnCode; 
  	my $zmm = 1; # boolean
 	
 	if ( !(GetOptions(
@@ -420,7 +421,7 @@ MAIN: {
 	}
 
 	# Process status requests and get return codes
-	my $currentReturnCode;
+	my $currentReturnCode = 0;
 	$currentReturnCode = getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
 	push(@returnCodes, $currentReturnCode);
 	$currentReturnCode = getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
@@ -432,4 +433,8 @@ MAIN: {
 	# STATE_UNKNOWN = 3 Problem?
 	return (sort { $b <=> $a } @returnCodes)[0];
 =cut
+	$returnCode = myStatus(getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm), $EXITSTATUS);
+	$returnCode = myStatus(getPhysDevCfg($sudo, $arcconf, $controller, @physDevices), $EXITSTATUS);
+	$returncode = myStatus(getLogDevCfg($sudo, $arcconf, $controller, @logDevices), $EXITSTATUS);
+	return $returnCode;
 }
