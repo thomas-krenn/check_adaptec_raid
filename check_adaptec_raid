@@ -45,8 +45,20 @@ sub displayHelp {
 	#foobar strings
 }
  
+# TODO: implement arcconf 1 GETVERSION
+# Prints the Name, Version of the Plugin
+# Also Prints the name, version of arcconf and the version of the RAID-Controller
 sub displayVersion {
-	# Get arcconf VERSION, controller name, + VERSION of plugin 
+	my $sudo = $_[0];
+	my $arcconf = $_[1];
+	my @arcconfVersion = `$sudo $arcconf`;
+	print "Thomas-Krenn AG Adaptec Raid Controller Nagios Plugin\nVersion: ". $VERSION . "\n\n";
+	foreach my $line (@arcconfVersion){
+		if(index($line, "| UCLI |" ) ne "-1") {
+			$line =~ s/\s+\|.UCLI.\|\s+//g; # It ain't pretty but it works.
+			print $line. "";
+		}
+	}
 }
 
 
@@ -156,8 +168,7 @@ sub getPhysDevCfg {
     my $status = 0;
     my $statusMessage = "Physical Device Status: ";
     my @faildevices;
-    #my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-    my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output_fails`;
+    my @output = `$sudo $arcconf GETCONFIG $controller PD`;
     my %hash;
     my @linevalues;
     foreach my $line (@output) {
@@ -250,8 +261,8 @@ sub getLogDevCfg {
     my $status = 0;
     my $statusMessage = "Logical Device Status: ";
     my @faildevices;
-    #my @output = `$sudo $arcconf GETCONFIG $controller LD`;
-    my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/logical_all_output`;
+    my @output = `$sudo $arcconf GETCONFIG $controller LD`;
+    #my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/logical_all_output`;
     my %hash;
     my @linevalues;
     foreach my $line (@output) {
@@ -331,7 +342,7 @@ MAIN: {
 		'vv' => sub {$VERBOSITY = 2},
 		'vvv' => sub {$VERBOSITY = 3},
 		'h|help' => sub {displayHelp();},
-		'V|version' => sub {displayVersion();},
+		'V|version' => sub {displayVersion($sudo, $arcconf);},
 		'C|controller=i' => \$controller,
 		'LD|logicaldevice=s{,}' => \@logDevices,
 		'PD|physicaldevice=s{,}' => \@physDevices, 
