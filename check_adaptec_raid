@@ -155,13 +155,13 @@ sub getPhysDevCfg {
     my $devicenum = -1;
     my $status = 0;
     my $statusMessage = "Physical Device Status ";
-    my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-    #my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output`;
+    #my @output = `$sudo $arcconf GETCONFIG $controller PD`;
+    my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output`;
     my %hash;
     my @linevalues;
     foreach my $line (@output) {
         if($line =~ /(Device #)([0-9]+)/) {
-        	if(!@devices) {
+        	if(!defined($devices[0])) {
         		print "ned do";
         		
         	} else { print "do"; print @devices; }
@@ -234,8 +234,8 @@ MAIN: {
 		'h|help' => sub {displayHelp();},
 		'V|version' => sub {displayVersion();},
 		'C|controller=i' => \$controller,
-		'LD|logicaldevice=i@' => \@logDevices,
-		'PD|physicaldevice=i@' => \@physDevices, 
+		'LD|logicaldevice=s{,}' => \@logDevices,
+		'PD|physicaldevice=s{,}' => \@physDevices, 
 		'T|temperature=s' => \$temperature,
 		'p|path=s' => \$arcconf 
 	)))	{
@@ -248,7 +248,7 @@ MAIN: {
 		if ($arcconf eq '') {
 			$arcconf = '/usr/bin/arcconf';
 		}
-		unless ( -e $arcconf && -x $sudo ) { print "Permission denied or file not found!\n"; die; }
+		#unless ( -e $arcconf && -x $sudo ) { print "Permission denied or file not found!\n"; die; }
 	} else {
 		$sudo = '';
 		if ($arcconf eq '') {
@@ -257,6 +257,5 @@ MAIN: {
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
 	#getControllerCfg($sudo, $arcconf, $controller, $temperature);
-	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
-	#test3
+	getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
 }
