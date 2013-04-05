@@ -1,5 +1,5 @@
---- check_adaptec_raid	2013-04-05 10:11:33.963339040 +0200
-+++ check_adaptec_raid_cat	2013-04-05 10:14:12.627335566 +0200
+--- check_adaptec_raid	2013-04-05 11:08:45.055263955 +0200
++++ check_adaptec_raid_cat	2013-04-05 11:09:58.727262344 +0200
 @@ -59,7 +59,7 @@
  	my $zmm = $_[4];
  	my $status = 0; # Return Status
@@ -9,11 +9,12 @@
  	my %hash;
  	my @linevalues;
  	
-@@ -259,6 +259,6 @@
+@@ -297,6 +297,6 @@
  		}
  		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
  	}
 -	#getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
+-	getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
 +	getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
- 	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
++	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
  }
