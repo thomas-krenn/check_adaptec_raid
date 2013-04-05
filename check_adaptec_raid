@@ -90,27 +90,17 @@ sub getControllerCfg {
 				
 				# Logical Devices total/failed/degraded
 				case "Logical devices/Failed/Degraded" { 
-					print "DEBUG (linevalue1): " . $linevalues[1]."\n";
-					my $reTemp = $linevalues[1];
-					my $totalDisks = $linevalues[1] =~ /([0-9]+)\/[0-9]+\/[0-9]+/;
-					my $totalFailed = $linevalues[1] =~ /[0-9]+\/([0-9]+)\/[0-9]+/; # not tested either
-					my $totalDegraded = ($linevalues[1] =~ /[0-9]+\/[0-9]+\/([0-9]+)/); # not yet tested
-					my $generalFail = $linevalues[1] =~ /([0-9])+/;
-					$linevalues[1] = $reTemp;
+					my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
+					my $totalDisks = $linevalues[1] =~ /(^[0-9]+)/;
 					#### NEED TESTING!!!!! ####
-
-					
-					print "DEBUG (linevalue1): " . $linevalues[1]."\n";
-					print "DEBUG (degrad): " . $generalFail . "\n";
-					print "DEBUG (totalDisks): " . $totalDisks . "\n";
-					print "DEBUG (totalDegraded): " . $totalDegraded . "\n";
-					print "DEBUG (TotalFailed): " . $totalFailed . "\n";
-					
-					if ($generalFail ne "/0/0") { 
+					my $totalDegraded = $degrad =~ /.*?\d+.*?\d+.*?(\\d+)/; # not yet tested
+					my $totalFailed = $linevalues[1] =~ /.*?\d+.*?(\\d+)/; # not tested either
+					if ($degrad ne "/0/0") { 
 						$status = myStatus($status, STATE_WARNING);
 						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Disks Failed/Degraded. "; }
 						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disks have Failed or the Raid is degraded. "; }	
-						if ($VERBOSITY >= 2) {$statusMessage .= "\nWARNING: Disks have Failed or the Raid is degraded: (Total Disks: ". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . ") " }
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nWARNING: Disks have Failed or the Raid is degraded:
+(Total Disks:". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . ") " }
 					}
 				}
 				
@@ -118,22 +108,21 @@ sub getControllerCfg {
 				# Critical if 20% over the set Threshold (Will be configureable in the future)
 				# http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
 				case "Temperature" {
-					my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
-					my $criticalTemp = $temperature + (2 * ( $temperature / 10 ));
-					#print "\n\nDEBUG OUTPUT(criticalTemp): ". $criticalTemp . "\n\n";
-					#print "\n\nDEBUG OUTPUT(temp): ". $controllerTemp . "\n\n";
-					##print "\n\nDEBUG OUTPUT(temperature: ". $temperature . "\n\n";
-					if ( $controllerTemp > $criticalTemp) {
+					my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
+					my $criticalTemp = $temperature + (2 x( $temperature / 10 ));
+					if ( $temp > $criticalTemp) {
 						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: Temperature critical: " . $controllerTemp . " C. "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: Temperature critical: (20% over threshold): " . $controllerTemp . " C. "; }	
-						if ($VERBOSITY >= 2) {$statusMessage .= "\nCRITICAL: Temperature critical: (20% over threshold: ". $criticalTemp . " C):" . $controllerTemp . " C. "; }
-					} elsif ($controllerTemp > $temperature) {
+						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: Temperature critical: " . $temp . " C. "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: Temperature critical: (20% over threshold): " . $temp . " C. "; }	
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nCRITICAL: Temperature critical: (20% over threshold: ". $criticalTemp . "C):" . $temp . " C. "; }
+					} elsif ($temp > $temperature) {
 						$status = myStatus($status, STATE_WARNING);
-						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Temperature Warning:" . $controllerTemp . " C. "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Temperature Warning (Threshold: ". $temperature. " C): " . $controllerTemp . " C. "; }
-						if ($VERBOSITY >= 2) {$statusMessage .= "\nWARNING: Temperature Warning (Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ." C):" . $controllerTemp . " C. "; }
-					}		
+						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Temperature Warning:" . $temp . " C. "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Temperature Warning(Threshold: ". $temperature. "C): " . $temp . " C. "; }
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nWARNING: Temperature Warning(Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ."C ):" . $temp . " C. "; }
+					} 
+
+					
 				}
 				
 				# Zero Maintenance Module
@@ -203,7 +192,7 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum is not online. "; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum is not online."; }
                     }
                 }
                 case "S.M.A.R.T." {
@@ -212,7 +201,7 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                     	$status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum: S.M.A.R.T. error. "; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum: S.M.A.R.T. error."; }
                     }
                 }
                 case "S.M.A.R.T. warnings" {
@@ -221,8 +210,8 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_WARNING);
-                        if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warning. "; }
-                        if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warnings is more than zero. "; }
+                        if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warning."; }
+                        if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warnings is more than zero."; }
                     }
                 }
                 case "Failed logical device segments" {
@@ -240,9 +229,9 @@ sub getPhysDevCfg {
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
     	if ($status eq 1) {
-    		$statusMessage = "WARNING: Problems with $faildevicenum physical disk(s). ";
+    		$statusMessage = "WARNING: Problems with $faildevicenum physical disk(s).";
     	} else {
-    		$statusMessage = "CRITICAL: Problems with $faildevicenum physical disk(s). "
+    		$statusMessage = "CRITICAL: Problems with $faildevicenum physical disk(s)."
     	}
     }
     # Wenn Status hier nu immer OK is dann print "Physical Device Status: OK"
@@ -256,7 +245,77 @@ sub getPhysDevCfg {
 
 
 sub getLogDevCfg {
-	
+	my $sudo = $_[0];
+	my $arcconf = $_[1];
+    my $controller = $_[2];
+    my @devices = $_[3];
+    my $devicenum = -1;
+    my $status = 0;
+    my $statusMessage = "Logical Device Status: ";
+    my @faildevices;
+    #my @output = `$sudo $arcconf GETCONFIG $controller LD`;
+    my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/logical_all_output`;
+    my %hash;
+    my @linevalues;
+    foreach my $line (@output) {
+        if($line =~ /(Logical device number )([0-9]+)/) {
+        	if(!defined($devices[0])) {
+        		# keine devices explizit angegeben, überprüfe alle
+        		$devicenum = $2;
+        	} else {
+    			# es sind devices angegeben, prüfe nur die
+        		if(grep {$_ eq $2} @devices) {
+        			# das aktuell gefundene soll geprüft werden
+        			$devicenum = $2;
+        		} else { 
+        			# das aktuelle soll übersprungen werden
+        			$devicenum = -1;
+        		}
+        	}
+        }
+        if($devicenum ne -1 && index($line, ':') != -1) {
+            @linevalues = split(/:/, $line);
+            $linevalues[0] =~ s/^\s+|\s+$//g;
+            $linevalues[1] =~ s/^\s+|\s+$//g;
+            $hash{$linevalues[0]} = $linevalues[1];
+
+            switch($linevalues[0]) {
+                case "Status of logical device" {
+                    if ($linevalues[1] ne "Optimal") {
+                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    		push(@faildevices, $devicenum);
+                    	}
+                        $status = myStatus($status, STATE_CRITICAL);
+                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Status of logical disk $devicenum is not optimal."; }
+                    }
+                }
+                case "Failed stripes" {
+                    if ($linevalues[1] ne "No") {
+                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    		push(@faildevices, $devicenum);
+                    	}
+                    	$status = myStatus($status, STATE_CRITICAL);
+                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Logical disk $devicenum has failed stripes."; }
+                    }
+                }
+            }
+        }
+    }
+    my $faildevicenum = scalar(@faildevices);
+    if ($VERBOSITY eq 0 && $faildevicenum > 0) {
+    	if ($status eq 1) {
+    		$statusMessage = "WARNING: Problems with $faildevicenum logical disk(s).";
+    	} else {
+    		$statusMessage = "CRITICAL: Problems with $faildevicenum logical disk(s)."
+    	}
+    }
+    # Wenn Status hier nu immer OK is dann print "Physical Device Status: OK"
+	if ($status eq 0) {
+		print $statusMessage . "OK";
+	} else {
+		print $statusMessage;
+	}
+    return $status
 }
 
 
@@ -301,5 +360,6 @@ MAIN: {
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
 	#getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
-	getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	getLogDevCfg($sudo, $arcconf, $controller, @logDevices);
 }
