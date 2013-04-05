@@ -10,7 +10,7 @@ use Switch;
 
 our $VERBOSITY = 0;
 our $VERSION = '0.1.3.4.6.233-ALPHA';
-our $NAME = "Thomas-Krenn AG Adaptec Raid Controller Nagios Plugin";
+our $NAME = "Thomas-Krenn AG Adaptec Raid Controller Nagios/Icinga Plugin";
 our $EXITSTATUS = 0;
 use constant { 
 	STATE_OK => 0,
@@ -33,11 +33,8 @@ sub myStatus {
 	return $returnStatus
 }
 
-sub myExit {
-		print $_[1];
-		exit ($_[2]);
-}
-
+# Explains the Usage of the plugin, also which options take which values
+# TODO: finished?!
 sub displayUsage {
 	print $NAME . "V.: " . $VERSION ."\n";
 	print "Usage:\n";
@@ -48,11 +45,13 @@ sub displayUsage {
 	print "		-LD # --logicaldevice #		Specifies one or more Logical Devices, defaults to all\n";
 	print "		-PD # --physicaldevice #	Specifies one or more Physical Devies, defaults to all\n";
 	print "		-T # --temperature #		Specifies a maximum temperature the RAID-Controller may have, default is 40 C\n";
-	print "		-p <str> --path <str>		Specifies the path to arcconf, default is /usr/bin/arcconf or C:\Programme\Adaptec\RemoteArcconf\arcconf.exe\n";
+	print "		-p <str> --path <str>		Specifies the path to arcconf, default is /usr/bin/arcconf or C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
 	print "		-z <bool> --ZMM <bool>		Boolean Value which specifies if an Zero-Maintenance Module is Present (1 is present/0 is not Present). Default is 1\n";
 	die;
 }
 
+# Displays a short Help text for the user
+# TODO: nicer formatting + more help?
 sub displayHelp {
 	print $NAME . "V.: " . $VERSION ."\n";
 	print "This Nagios/Icinga Plugin checks ADAPTEC RAID-Controllers for Warnings/Errors. \n";
