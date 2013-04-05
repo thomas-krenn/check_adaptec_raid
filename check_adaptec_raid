@@ -40,7 +40,7 @@ sub displayUsage {
 	print "Usage:\n";
 	print "		-v(-vv,-vvv) --verbose		Sets the verbosity level\n";
 	print "		-h --help					Displays the Help page\n";
-	print "		-V --verion					Displays the Version of the plugin and arcconf\n";
+	print "		-V --version					Displays the Version of the plugin and arcconf\n";
 	print "		-C # --controller #			Specifies a Controller number, defaults to 1\n";
 	print "		-LD # --logicaldevice #		Specifies one or more Logical Devices, defaults to all\n";
 	print "		-PD # --physicaldevice #	Specifies one or more Physical Devies, defaults to all\n";
@@ -397,7 +397,7 @@ MAIN: {
  			splice(@logDevices, $i, 1);
  		}
  	}
- 	for ($i = 0; $i < @physDevices; $i++) {
+ 	for (my $i = 0; $i < @physDevices; $i++) {
  		if($physDevices[$i] =~ /(^[0-9]+)/) {
  			$physDevices[$i] = $1;
  		} else {
