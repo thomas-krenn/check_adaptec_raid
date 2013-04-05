@@ -60,7 +60,6 @@ sub getControllerCfg {
 	my $status = 0; # Return Status
 	my $statusMessage = "Controller Status "; # Return String
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
-	print Dumper(@output) if $VERBOSITY == 3;
 	my %hash;
 	my @linevalues;
 	
@@ -99,8 +98,8 @@ sub getControllerCfg {
 						$status = myStatus($status, STATE_WARNING);
 						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Disks Failed/Degraded. "; }
 						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disks have Failed or the Raid is degraded. "; }	
-						if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Disks have Failed or the Raid is degraded: \n
-						(Total Disks:". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . ") " }
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nWARNING: Disks have Failed or the Raid is degraded:
+(Total Disks:". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . ") " }
 					}
 				}
 				
@@ -109,19 +108,19 @@ sub getControllerCfg {
 				# http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
 				case "Temperature" {
 					my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
-					my $criticalTemp = $temperature + (2*( $temperature / 10 ));
-					if ($temp > $temperature) {
+					my $criticalTemp = $temperature + (2 x( $temperature / 10 ));
+					if ( $temp > $criticalTemp) {
+						$status = myStatus($status, STATE_CRITICAL);
+						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: Temperature critical: " . $temp . " C. "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: Temperature critical: (20% over threshold): " . $temp . " C. "; }	
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nCRITICAL: Temperature critical: (20% over threshold: ". $criticalTemp . "C):" . $temp . " C. "; }
+					} elsif ($temp > $temperature) {
 						$status = myStatus($status, STATE_WARNING);
 						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Temperature Warning:" . $temp . " C. "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Temperature Warning(Threshold: ". $temperature. "):" . $temp . " C."; }
-						if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Temperature Warning(Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ."):" . $temp . " C. "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Temperature Warning(Threshold: ". $temperature. "C): " . $temp . " C. "; }
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nWARNING: Temperature Warning(Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ."C ):" . $temp . " C. "; }
 					} 
-					elsif ( $temp > $criticalTemp) {
-						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: Temperature critical:" . $temp . " C. "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: Temperature critical: (20% over threshold):" . $temp . " C. "; }	
-						if ($VERBOSITY >= 2) {$statusMessage .= "CRITICAL: Temperature critical: (20% over threshold: ". $criticalTemp . "C):" . $temp . " C. "; }
-					}
+
 					
 				}
 				# Zero Maintenance Module
