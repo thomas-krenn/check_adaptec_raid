@@ -59,7 +59,6 @@ sub getControllerCfg {
 	my $status = 0; # Return Status
 	my $statusMessage = "Controller Status "; # Return String
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
-	print Dumper(@output) if $VERBOSITY == 3;
 	my %hash;
 	my @linevalues;
 	
@@ -71,6 +70,7 @@ sub getControllerCfg {
 			$hash{$linevalues[0]} = $linevalues[1];
 			
 			switch($linevalues[0]) {
+				# Overall Controller Status
 				case "Controller Status" { 
 					if ($linevalues[1] ne "Optimal") { 
 						$status = myStatus($status, STATE_CRITICAL);
@@ -78,49 +78,53 @@ sub getControllerCfg {
 						if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: The Controller Status is not running Optimal"; }	
 					}
 				}
+				# Defunctional disks
 				case "Defunct disk drive count" { 
 					if ($linevalues[1] ne "0") { 
 						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: Defunctioning Disks "; }
-						if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Defunctioning Disk Count: " . $linevalues[1] . ". "; }
+						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: Defunctional Disks "; }
+						if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Defunctional Disk Count: " . $linevalues[1] . ". "; }
 					}
 				}
+				
+				# Logical Devices total/failed/degraded
 				case "Logical devices/Failed/Degraded" { 
 					my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
 					my $totalDisks = $linevalues[1] =~ /(^[0-9]+)/;
-					#
-					# CONTINUE HERE!!!!!!
-					#
-					my $totalDegraded = $degrad =~ ""; # not yet tested
-					my $totalFailed = $linevalues[1] =~ /([0-9].*?)/; # not tested either
+					#### NEED TESTING!!!!! ####
+					my $totalDegraded = $degrad =~ /.*?\d+.*?\d+.*?(\\d+)/; # not yet tested
+					my $totalFailed = $linevalues[1] =~ /.*?\d+.*?(\\d+)/; # not tested either
 					if ($degrad ne "/0/0") { 
 						$status = myStatus($status, STATE_WARNING);
 						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Disks Failed/Degraded. "; }
 						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disks have Failed or the Raid is degraded. "; }	
-						if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Disks have Failed or the Raid is degraded: \n
-						(Total Disks:". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . ")" }
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nWARNING: Disks have Failed or the Raid is degraded:
+(Total Disks:". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . ") " }
 					}
 				}
 				
 				# Warning if temperature is over the set Threshold 
-				# Critical if 20% over the set Threshold (Will be configureable in the future) --> Developer Guidelines: Setting Thresholds and Ranges
+				# Critical if 20% over the set Threshold (Will be configureable in the future)
+				# http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
 				case "Temperature" {
 					my ($temp) = $linevalues[1] =~ /(^[0-9]+)/;
-					my $criticalTemp = $temperature + (2*( $temperature / 10));
-					if ($temp > $temperature) {
-						$status = myStatus($status, STATE_WARNING);
-						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Temperature Warning:" . $temp . " C."; }
-						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Temperature Warning(Threshold: ". $temperature. "):" . $temp . " C."; }
-						if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Temperature Warning(Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ."):" . $temp . " C."; }
-					} 
+					my $criticalTemp = $temperature + (2 x( $temperature / 10 ));
 					if ( $temp > $criticalTemp) {
 						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: Temperature critical:" . $temp . " C."; }
-						if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: Temperature critical: (20% over threshold):" . $temp . " C."; }	
-						if ($VERBOSITY >= 2) {$statusMessage .= "CRITICAL: Temperature critical: (20% over threshold: ". $criticalTemp . "C):" . $temp . " C."; }
-					}
+						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: Temperature critical: " . $temp . " C. "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: Temperature critical: (20% over threshold): " . $temp . " C. "; }	
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nCRITICAL: Temperature critical: (20% over threshold: ". $criticalTemp . "C):" . $temp . " C. "; }
+					} elsif ($temp > $temperature) {
+						$status = myStatus($status, STATE_WARNING);
+						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Temperature Warning:" . $temp . " C. "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Temperature Warning(Threshold: ". $temperature. "C): " . $temp . " C. "; }
+						if ($VERBOSITY >= 2) {$statusMessage .= "\nWARNING: Temperature Warning(Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ."C ):" . $temp . " C. "; }
+					} 
+
 					
 				}
+				
+				# Zero Maintenance Module
 				case "Status" { 
 					if ($linevalues[1] ne "ZMM Optimal") { 
 						$status = myStatus($status, STATE_CRITICAL);
@@ -132,6 +136,7 @@ sub getControllerCfg {
 		}
 		
 	}
+	
 	# Wenn Status hier nu immer OK is dann print "Controller Status: OK
 	if ($status eq 0) {
 		print $statusMessage . "OK";
@@ -154,7 +159,6 @@ sub getPhysDevCfg {
     #my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output`;
     my %hash;
     my @linevalues;
-
     foreach my $line (@output) {
         if($line =~ /(Device #)([0-9]+)/) {
         	if(!@devices) {
@@ -221,7 +225,7 @@ MAIN: {
 	my $sudo = ''; #check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
 	my $arcconf = '';
 	my $platform = $^O;
- 	my $temperature = ''; 
+ 	my $temperature = 40; 
 	
 	if ( !(GetOptions(
 		'v|verbose' => sub {$VERBOSITY = 1 },
