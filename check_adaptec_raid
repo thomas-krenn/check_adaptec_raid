@@ -384,16 +384,25 @@ MAIN: {
 		displayUsage();
 	}
  	
- 	# Imput validation
+ 	# Input validation
  	if(!$controller =~ /(^[0-9]+)/) {
  		print "Invalid controller number!"; die;
  	} elsif(!$temperature =~ /(^[0-9]+)/) {
  		print "Invalid temperature threshold!"; die;
  	}
- 	# arrays
- 	foreach my $logicaldevice (@logDevices) {
- 		$logicaldevice =~ /(^[0-9]+)/);
- 		# replace element with sanitized element
+ 	for (my $i = 0; $i < @logDevices; $i++) {
+ 		if($logDevices[$i] =~ /(^[0-9]+)/) {
+ 			$logDevices[$i] = $1;
+ 		} else {
+ 			splice(@logDevices, $i, 1);
+ 		}
+ 	}
+ 	for ($i = 0; $i < @physDevices; $i++) {
+ 		if($physDevices[$i] =~ /(^[0-9]+)/) {
+ 			$physDevices[$i] = $1;
+ 		} else {
+ 			splice(@physDevices, $i, 1);
+ 		}
  	}
  	if(!$arcconf =~ /.{0,1}(\/{0,1}[a-zA-Z0-9]\/{0,1})/) {
  		# ned fertig
@@ -403,7 +412,7 @@ MAIN: {
  	} elsif(!$zmm =~ /(^[0-1]+)/) {
  		print "Invalid ZMM parameter, must be 0 or 1!"; die;
  	}
-=begin
+
 	# Check platform
 	if ($platform eq 'linux') {
 		chomp($sudo= `which sudo`);
@@ -419,19 +428,7 @@ MAIN: {
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
 
-	# Process status requests and get return codes
-	my $currentReturnCode = 0;
-	$currentReturnCode = getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
-	push(@returnCodes, $currentReturnCode);
-	$currentReturnCode = getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
-	push(@returnCodes, $currentReturnCode);
-	$currentReturnCode = getLogDevCfg($sudo, $arcconf, $controller, @logDevices);
-	push(@returnCodes, $currentReturnCode);
-	
-	# Highest status code to return
-	# STATE_UNKNOWN = 3 Problem?
-	return (sort { $b <=> $a } @returnCodes)[0];
-=cut
+	# Set exit status
 	$EXITSTATUS = myStatus(getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm), $EXITSTATUS);
 	$EXITSTATUS = myStatus(getPhysDevCfg($sudo, $arcconf, $controller, @physDevices), $EXITSTATUS);
 	$EXITSTATUS = myStatus(getLogDevCfg($sudo, $arcconf, $controller, @logDevices), $EXITSTATUS);
