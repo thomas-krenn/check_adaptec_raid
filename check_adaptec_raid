@@ -273,7 +273,6 @@ sub getLogDevCfg {
     my $statusMessage = "Logical Device Status: ";
     my @faildevices;
     my @output = `$sudo $arcconf GETCONFIG $controller LD`;
-    #my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/logical_all_output`;
     my %hash;
     my @linevalues;
    
@@ -370,11 +369,13 @@ MAIN: {
  	
  	# Imput validation
  	if(!$controller =~ /(^[0-9]+)/) {
- 		print "controller gibts ned?"; die;
+ 		print "Invalid controller number."; die;
  	} else if(!$temperature =~ /(^[0-9]+)/) {
  		print "temperatur is a schaß"; die;
  	} else if(!$path =~ /.{0,1}(\/{0,1}[a-zA-Z0-9]\/{0,1})/) {
  		# ned fertig
+ 		# if($path =~ /[\!\"\§\$\%\&\(\)\{\}\=\?\\]/) {
+ 		# if(!$path =~ /.{0,1}(\/{0,1}[a-zA-Z0-9]\/{0,1})/) {
  		print "wo soin des hingeh"; die;
  	} else if(!$zmm =~ /(^[0-1]+)/) {
  		print "boolean ba zmm bitte"; die;
