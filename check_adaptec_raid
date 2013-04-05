@@ -151,7 +151,7 @@ sub getPhysDevCfg {
     my $status = 0;
     my $statusMessage = "Physical Device Status ";
     my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-    # my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output`;
+    #my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output`;
     my %hash;
     my @linevalues;
 
@@ -160,7 +160,7 @@ sub getPhysDevCfg {
         	if(!@devices) {
         		print "ned do";
         		
-        	} else { print "do"; }
+        	} else { print "do"; print @devices; }
         	if(grep {$_ eq $2} @devices) {
         		print "ned drin";
         	} else { print "drin"; }
@@ -252,6 +252,6 @@ MAIN: {
 		}
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
-	getControllerCfg($sudo, $arcconf, $controller, $temperature);
-	getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	#getControllerCfg($sudo, $arcconf, $controller, $temperature);
+	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
 }
