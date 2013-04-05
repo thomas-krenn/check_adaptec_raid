@@ -366,7 +366,6 @@ MAIN: {
 	my @returnCodes;
 	my $platform = $^O;
  	my $temperature = 40;
- 	my $returnCode; 
  	my $zmm = 1; # boolean
 	
 	if ( !(GetOptions(
@@ -433,8 +432,8 @@ MAIN: {
 	# STATE_UNKNOWN = 3 Problem?
 	return (sort { $b <=> $a } @returnCodes)[0];
 =cut
-	$returnCode = myStatus(getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm), $EXITSTATUS);
-	$returnCode = myStatus(getPhysDevCfg($sudo, $arcconf, $controller, @physDevices), $EXITSTATUS);
-	$returncode = myStatus(getLogDevCfg($sudo, $arcconf, $controller, @logDevices), $EXITSTATUS);
-	return $returnCode;
+	$EXITSTATUS = myStatus(getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm), $EXITSTATUS);
+	$EXITSTATUS = myStatus(getPhysDevCfg($sudo, $arcconf, $controller, @physDevices), $EXITSTATUS);
+	$EXITSTATUS = myStatus(getLogDevCfg($sudo, $arcconf, $controller, @logDevices), $EXITSTATUS);
+	return $EXITSTATUS;
 }
