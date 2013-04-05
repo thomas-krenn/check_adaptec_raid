@@ -4,7 +4,6 @@
 use strict;
 use warnings;
 use Getopt::Long qw(:config no_ignore_case);
-use IPC::Run3;
 use Data::Dumper;
 use Switch;
 
@@ -147,65 +146,65 @@ sub getPhysDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
     my $controller = $_[2];
-    my $devices = $_[3];
+    my @devices = $_[3];
     my $devicenum = -1;
     my $status = 0;
-    my $statusMessage = "";
+    my $statusMessage = "Physical Device Status ";
     my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-    print Dumper(@output) if $VERBOSITY == 3;
+    # my @output = `cat /home/mgrubhofer/git/check_adaptec_raid/arcconf_output/physical_output`;
     my %hash;
     my @linevalues;
 
     foreach my $line (@output) {
-=begin comment
-            ($devicenum) = $line =~ /(^[0-9]+)/;
-            if ($devicenum ne -1) {
-                    print "Device #".$devicenum."\n";
-            }
-            
-            $txt = '        Device #0';
+        if($line =~ /(Device #)([0-9]+)/) {
+        	if(!@devices) {
+        		print "ned do";
+        		
+        	} else { print "do"; }
+        	if(grep {$_ eq $2} @devices) {
+        		print "ned drin";
+        	} else { print "drin"; }
+        	if(1) {
+        		$devicenum = $2;
+        		print "Device found: $devicenum \n";
+        	} else {
+        		$devicenum = -1;
+        	}
+        }
+        if($devicenum ne -1 && index($line, ':') != -1) {
+            @linevalues = split(/:/, $line);
+            $linevalues[0] =~ s/^\s+|\s+$//g;
+            $linevalues[1] =~ s/^\s+|\s+$//g;
+            $hash{$linevalues[0]} = $linevalues[1];
 
-            if ($txt =~ m/(\tDevice #)([0-9]+)/is)
-            {
-               $word1=$1;
-                $int1=$2;
-                print "($word1) ($int1) \n";
-            }
-=cut
-            if(index($line, ':') != -1) {
-                    @linevalues = split(/:/, $line);
-                    $linevalues[0] =~ s/^\s+|\s+$//g;
-                    $linevalues[1] =~ s/^\s+|\s+$//g;
-                    $hash{$linevalues[0]} = $linevalues[1];
-
-                    switch($linevalues[0]) {
-                            case "State" {
-                                    if ($linevalues[1] ne "Online") {
-                                            $status = myStatus($status, STATE_CRITICAL);
-                                            if ($VERBOSITY == 0) {$statusMessage .= ""; }
-                                            if ($VERBOSITY == 1) {$statusMessage .= ""; }
-                                            if ($VERBOSITY == 2) {$statusMessage .= ""; }
-                                            if ($VERBOSITY == 3) {$statusMessage .= ""; }
-                                    }
-                            }
-                            case "S.M.A.R.T." {
-                                    if ($linevalues[1] ne "No") {
-                                            $status = myStatus($status, STATE_CRITICAL);
-                                            if ($VERBOSITY == 0) {$statusMessage .= ""; }
-                                            if ($VERBOSITY == 1) {$statusMessage .= ""; }
-                                            if ($VERBOSITY == 2) {$statusMessage .= ""; }
-                                            if ($VERBOSITY == 3) {$statusMessage .= ""; }
-                                    }
-                            }
+            switch($linevalues[0]) {
+                case "State" {
+                    if ($linevalues[1] ne "Online") {
+                            $status = myStatus($status, STATE_CRITICAL);
+                            if ($VERBOSITY >= 0) {$statusMessage .= "CRITICAL: Disk $devicenum is not online."; }
                     }
+                }
+                case "S.M.A.R.T." {
+                    if ($linevalues[1] ne "No") {
+                            $status = myStatus($status, STATE_CRITICAL);
+                            if ($VERBOSITY >= 0) {$statusMessage .= "CRITICAL: Disk $devicenum: S.M.A.R.T. error."; }
+                    }
+                }
+                case "Failed logical device segments" {
+                	if ($linevalues[1] eq "True") {
+                        $status = myStatus($status, STATE_CRITICAL);
+                        if ($VERBOSITY >= 0) {$statusMessage .= "CRITICAL: Disk $devicenum has failed logical device segments."; }
+                	}
+                }
             }
+        }
     }
     # Wenn Status hier nu immer OK is dann print "Physical Device Status: OK
-    if ($status eq 0) {
-            print "Physical Device Status: OK";
-    } else {
-            print $statusMessage;
-    }
+	if ($status eq 0) {
+		print $statusMessage . "OK";
+	} else {
+		print $statusMessage;
+	}
     return $status
 }
 
@@ -253,6 +252,6 @@ MAIN: {
 		}
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
-	#getControllerCfg($sudo, $arcconf, $controller, $temperature);
-	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	getControllerCfg($sudo, $arcconf, $controller, $temperature);
+	getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
 }
