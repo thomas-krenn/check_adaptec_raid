@@ -87,6 +87,7 @@ sub getControllerCfg {
 						if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Defunctional Disk Count: " . $linevalues[1] . ". "; }
 					}
 				}
+				
 				# Logical Devices total/failed/degraded
 				case "Logical devices/Failed/Degraded" { 
 					my $degrad = $linevalues[1] =~ s/^[0-9]+//g;
@@ -123,6 +124,7 @@ sub getControllerCfg {
 
 					
 				}
+				
 				# Zero Maintenance Module
 				case "Status" { 
 					if ($linevalues[1] ne "ZMM Optimal") { 
@@ -135,6 +137,7 @@ sub getControllerCfg {
 		}
 		
 	}
+	
 	# Wenn Status hier nu immer OK is dann print "Controller Status: OK
 	if ($status eq 0) {
 		print $statusMessage . "OK";
