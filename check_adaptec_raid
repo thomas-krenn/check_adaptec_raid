@@ -92,10 +92,10 @@ sub getControllerCfg {
 				case "Logical devices/Failed/Degraded" { 
 					print "DEBUG (linevalue1): " . $linevalues[1]."\n";
 					my $reTemp = $linevalues[1];
-					my $totalDisks = $linevalues[1] =~ /^([0-9]+)\/[0-9]+\/[0-9]+/;
+					my $totalDisks = $linevalues[1] =~ /([0-9]+)\/[0-9]+\/[0-9]+/;
 					my $totalFailed = $linevalues[1] =~ /[0-9]+\/([0-9]+)\/[0-9]+/; # not tested either
 					my $totalDegraded = ($linevalues[1] =~ /[0-9]+\/[0-9]+\/([0-9]+)/); # not yet tested
-					my $generalFail = $linevalues[1] =~ /^([0-9])+/;
+					my $generalFail = $linevalues[1] =~ /([0-9])+/;
 					$linevalues[1] = $reTemp;
 					#### NEED TESTING!!!!! ####
 
