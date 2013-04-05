@@ -56,6 +56,7 @@ sub getControllerCfg {
 	my $arcconf = $_[1];
 	my $controller = $_[2];
 	my $temperature = $_[3];
+	my $zmm = $_[4];
 	my $status = 0; # Return Status
 	my $statusMessage = "Controller Status "; # Return String
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
@@ -126,10 +127,12 @@ sub getControllerCfg {
 				
 				# Zero Maintenance Module
 				case "Status" { 
-					if ($linevalues[1] ne "ZMM Optimal") { 
-						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: ZMM Not Optimal!"; }
-						if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Zero Maintenance Module Error or Module not found!"; }	
+					if ( $zmm == 1) {
+						if ($linevalues[1] ne "ZMM Optimal") { 
+							$status = myStatus($status, STATE_CRITICAL);
+							if ($VERBOSITY == 0) {$statusMessage .= "CRITICAL: ZMM Not Optimal!"; }
+							if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Zero Maintenance Module Error or Module not found!"; }	
+						}
 					}
 				}
 			}
@@ -222,10 +225,11 @@ MAIN: {
 	my $controller = 1;
 	my @logDevices; 
 	my @physDevices;
-	my $sudo = ''; #check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
+	my $sudo = ''; # check_arc all nopasswd: /usr/bin/arcconf GETCONFIG *
 	my $arcconf = '';
 	my $platform = $^O;
  	my $temperature = 40; 
+ 	my $zmm = 1; # boolean
 	
 	if ( !(GetOptions(
 		'v|verbose' => sub {$VERBOSITY = 1 },
@@ -237,7 +241,8 @@ MAIN: {
 		'LD|logicaldevice=i@' => \@logDevices,
 		'PD|physicaldevice=i@' => \@physDevices, 
 		'T|temperature=s' => \$temperature,
-		'p|path=s' => \$arcconf 
+		'p|path=s' => \$arcconf,
+		'z|ZMM' => \$zmm
 	)))	{
 		displayUsage();
 	}
@@ -256,7 +261,7 @@ MAIN: {
 		}
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
-	#getControllerCfg($sudo, $arcconf, $controller, $temperature);
+	#getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
 	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
 	#test3
 }
