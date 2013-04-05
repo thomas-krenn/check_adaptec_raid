@@ -258,4 +258,5 @@ MAIN: {
 	}
 	#getControllerCfg($sudo, $arcconf, $controller, $temperature);
 	#getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	#test
 }
