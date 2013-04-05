@@ -387,18 +387,24 @@ MAIN: {
  	
  	# Imput validation
  	if(!$controller =~ /(^[0-9]+)/) {
- 		print "Invalid controller number."; die;
+ 		print "Invalid controller number!"; die;
  	} elsif(!$temperature =~ /(^[0-9]+)/) {
- 		print "temperatur is a schaß"; die;
- 	} elsif(!$arcconf =~ /.{0,1}(\/{0,1}[a-zA-Z0-9]\/{0,1})/) {
+ 		print "Invalid temperature threshold!"; die;
+ 	}
+ 	# arrays
+ 	foreach my $logicaldevice (@logDevices) {
+ 		$logicaldevice =~ /(^[0-9]+)/);
+ 		# replace element with sanitized element
+ 	}
+ 	if(!$arcconf =~ /.{0,1}(\/{0,1}[a-zA-Z0-9]\/{0,1})/) {
  		# ned fertig
  		# if($path =~ /[\!\"\§\$\%\&\(\)\{\}\=\?\\]/) {
  		# if(!$path =~ /.{0,1}(\/{0,1}[a-zA-Z0-9]\/{0,1})/) {
- 		print "wo soin des hingeh"; die;
+ 		print "Invalid path to arcconf!"; die;
  	} elsif(!$zmm =~ /(^[0-1]+)/) {
- 		print "boolean ba zmm bitte"; die;
+ 		print "Invalid ZMM parameter, must be 0 or 1!"; die;
  	}
-
+=begin
 	# Check platform
 	if ($platform eq 'linux') {
 		chomp($sudo= `which sudo`);
@@ -413,7 +419,7 @@ MAIN: {
 		}
 		unless ( -e $arcconf ) { print "Executable not found!\n"; die; }
 	}
-	
+
 	# Process status requests and get return codes
 	my $currentReturnCode;
 	$currentReturnCode = getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
@@ -426,4 +432,5 @@ MAIN: {
 	# Highest status code to return
 	# STATE_UNKNOWN = 3 Problem?
 	return (sort { $b <=> $a } @returnCodes)[0];
+=cut
 }
