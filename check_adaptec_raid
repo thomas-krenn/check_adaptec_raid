@@ -412,7 +412,7 @@ MAIN: {
 	$EXITSTATUS = myStatus(getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm), $EXITSTATUS);
 	$EXITSTATUS = myStatus(getPhysDevCfg($sudo, $arcconf, $controller, @physDevices), $EXITSTATUS);
 	$EXITSTATUS = myStatus(getLogDevCfg($sudo, $arcconf, $controller, @logDevices), $EXITSTATUS);
-	return $EXITSTATUS;
+	exit($EXITSTATUS);
 }
 
 __END__
