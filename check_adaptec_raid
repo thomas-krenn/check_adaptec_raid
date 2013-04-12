@@ -46,7 +46,7 @@ sub displayUsage {
 	print "		-T # --temperature #		Specifies a maximum temperature the RAID-Controller may have, default is 40 C\n";
 	print "		-p <str> --path <str>		Specifies the path to arcconf, default is /usr/bin/arcconf or C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
 	print "		-z <bool> --ZMM <bool>		Boolean Value which specifies if an Zero-Maintenance Module is Present (1 is present/0 is not Present). Default is 1\n";
-	die;
+	exit(3);
 }
 
 # Displays a short Help text for the user
@@ -58,7 +58,7 @@ sub displayHelp {
 	print "* Arcconf\n* Nagios/Icinga\n* sudo\n";
 	print "\n In order for this plugin to work properly you need to add nagios to your sudoers file (or create a new one for the nagios user)\n";
 	print "It is highly recommended that the nagios user only gets access to arcconf! For example: <nagios user> all nopasswd: /usr/bin/arcconf *\n";
-	die;
+	exit(0);
 }
  
 # Prints the Name, Version of the Plugin
@@ -85,6 +85,9 @@ sub displayVersion {
 #		- Temperature
 # 		- Status of ZMM if present
 # TODO: Nagios Dev Guidelines correct Threshold implementation (currently just takes > for warning and +20% for critical)
+
+#TODO Format messages to 'Failed Disks = Warning' etc.
+#TODO How to format verbose strings (e.g. Critical (Temp = Critical) [Temp = Critical, Failed Disk = Warning])
 sub getControllerCfg {
 	
 	my $sudo = $_[0];
@@ -128,7 +131,6 @@ sub getControllerCfg {
 					my $totalDisks = $1;
 					my $totalFailed = $2;
 					my $totalDegraded = $3;
-					#TODO Numbers or strings?
 					if ($totalFailed ne '0' || $totalDegraded ne '0') { 
 						$status = myStatus($status, STATE_WARNING);
 						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Disks Failed/Degraded. "; }
@@ -170,8 +172,11 @@ sub getControllerCfg {
 		}
 		
 	}
-	
+	#TODO Check status message output to apply to dev guidelines
 	if ($status eq 0) {
+		#FIXME Modify prints to a correct status message
+		#For example return only status variables ('Failed Disks')
+		#Form a string with theses variables and print the return status at start position
 		print $statusMessage . "OK";
 	} else {
 		print $statusMessage;
@@ -190,7 +195,6 @@ sub getPhysDevCfg {
     my $statusMessage = "Physical Device Status: "; # Return String
     my @faildevices;
     my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-    my %hash;
     my @linevalues;
     
     foreach my $line (@output) {
@@ -209,14 +213,14 @@ sub getPhysDevCfg {
             @linevalues = split(/:/, $line);
             $linevalues[0] =~ s/^\s+|\s+$//g;
             $linevalues[1] =~ s/^\s+|\s+$//g;
-            $hash{$linevalues[0]} = $linevalues[1];
 
             switch($linevalues[0]) {
             
             	# Main disk status (Online/Offline?)
                 case "State" {
                     if ($linevalues[1] ne "Online") {
-                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+						#check if device is in failed array, else add it
+                    	if(!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
@@ -227,7 +231,7 @@ sub getPhysDevCfg {
             	# Overall S.M.A.R.T. status
                 case "S.M.A.R.T." {
                     if ($linevalues[1] ne "No") {
-                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
                     	}
                     	$status = myStatus($status, STATE_CRITICAL);
@@ -238,7 +242,7 @@ sub getPhysDevCfg {
             	# Check if any S.M.A.R.T. warnings occured
                 case "S.M.A.R.T. warnings" {
                     if ($linevalues[1] ne "0") {
-                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_WARNING);
@@ -250,7 +254,7 @@ sub getPhysDevCfg {
             	# Look for bad device segments
                 case "Failed logical device segments" {
                 	if ($linevalues[1] eq "True") {
-                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
@@ -260,6 +264,7 @@ sub getPhysDevCfg {
             }
         }
     }
+	#FIXME What if devicenum is -1 here? Print a warning that PD num has not been found
     
     # Status output
     my $faildevicenum = scalar(@faildevices);
@@ -409,6 +414,7 @@ MAIN: {
 	}
 
 	# Set exit status
+	# Collect vars e.g. with multiple return values ($EXITSTATUS,@vars)
 	$EXITSTATUS = myStatus(getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm), $EXITSTATUS);
 	$EXITSTATUS = myStatus(getPhysDevCfg($sudo, $arcconf, $controller, @physDevices), $EXITSTATUS);
 	$EXITSTATUS = myStatus(getLogDevCfg($sudo, $arcconf, $controller, @logDevices), $EXITSTATUS);
