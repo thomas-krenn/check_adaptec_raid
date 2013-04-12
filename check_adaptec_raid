@@ -70,6 +70,7 @@ sub displayVersion {
 	my $arcconf = $_[1];
 	my @arcconfVersion = `$sudo $arcconf`;
 	print $NAME . "\nVersion: ". $VERSION . "\n\n";
+	#TODO Point out what version is printed here, is there a more clear way?
 	foreach my $line (@arcconfVersion){
 		if(index($line, "| UCLI |" ) ne "-1") {
 			$line =~ s/\s+\|.UCLI.\|\s+//g; # It ain't pretty but it works.
@@ -130,6 +131,7 @@ sub getControllerCfg {
 					my $totalDisks = $1;
 					my $totalFailed = $2;
 					my $totalDegraded = $3;
+					#TODO Numbers or strings?
 					if ($totalFailed ne 0 || $totalDegraded ne 0) { 
 						$status = myStatus($status, STATE_WARNING);
 						if ($VERBOSITY == 0) {$statusMessage .= "WARNING: Disks Failed/Degraded. "; }
@@ -309,6 +311,7 @@ sub getLogDevCfg {
             @linevalues = split(/:/, $line);
             $linevalues[0] =~ s/^\s+|\s+$//g;
             $linevalues[1] =~ s/^\s+|\s+$//g;
+			#TODO $hash is only used here once
             $hash{$linevalues[0]} = $linevalues[1];
 
             switch($linevalues[0]) {
@@ -375,9 +378,9 @@ MAIN: {
 		'h|help' => sub {displayHelp();},
 		'V|version' => sub {displayVersion($sudo, $arcconf);},
 		'C|controller=i' => \$controller,
-		'LD|logicaldevice=s{,}' => \@logDevices,
-		'PD|physicaldevice=s{,}' => \@physDevices, 
-		'T|temperature=s' => \$temperature,
+		'LD|logicaldevice=i{,}' => \@logDevices,
+		'PD|physicaldevice=i{,}' => \@physDevices, 
+		'T|temperature=i' => \$temperature,
 		'p|path=s' => \$arcconf,
 		'z|ZMM' => \$zmm
 	)))	{
@@ -385,25 +388,6 @@ MAIN: {
 	}
  	
  	# Input validation
- 	if(!$controller =~ /(^[0-9]+)/) {
- 		print "Invalid controller number!"; die;
- 	} elsif(!$temperature =~ /(^[0-9]+)/) {
- 		print "Invalid temperature threshold!"; die;
- 	}
- 	for (my $i = 0; $i < @logDevices; $i++) {
- 		if($logDevices[$i] =~ /(^[0-9]+)/) {
- 			$logDevices[$i] = $1;
- 		} else {
- 			splice(@logDevices, $i, 1);
- 		}
- 	}
- 	for (my $i = 0; $i < @physDevices; $i++) {
- 		if($physDevices[$i] =~ /(^[0-9]+)/) {
- 			$physDevices[$i] = $1;
- 		} else {
- 			splice(@physDevices, $i, 1);
- 		}
- 	}
  	if(!$arcconf =~ /.{0,1}(\/{0,1}[a-zA-Z0-9]\/{0,1})/) {
  		# ned fertig
  		# if($path =~ /[\!\"\§\$\%\&\(\)\{\}\=\?\\]/) {
