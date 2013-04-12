@@ -175,7 +175,7 @@ sub getControllerCfg {
 	#TODO Check status message output to apply to dev guidelines
 	if ($status eq 0) {
 		#FIXME Modify prints to a correct status message
-		#For example return only status variables ('Failed Disks')
+		#For example return only status variables ('Failed Disks','ZMM not optimal')
 		#Form a string with theses variables and print the return status at start position
 		print $statusMessage . "OK";
 	} else {
@@ -294,7 +294,6 @@ sub getLogDevCfg {
     my $statusMessage = "Logical Device Status: ";
     my @faildevices;
     my @output = `$sudo $arcconf GETCONFIG $controller LD`;
-    my %hash;
     my @linevalues;
    
     foreach my $line (@output) {
@@ -313,15 +312,13 @@ sub getLogDevCfg {
             @linevalues = split(/:/, $line);
             $linevalues[0] =~ s/^\s+|\s+$//g;
             $linevalues[1] =~ s/^\s+|\s+$//g;
-			#TODO $hash is only used here once
-            $hash{$linevalues[0]} = $linevalues[1];
 
             switch($linevalues[0]) {
             
             	# Main logical device status (Optimal/Failed?)
                 case "Status of logical device" {
                     if ($linevalues[1] ne "Optimal") {
-                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
@@ -332,7 +329,7 @@ sub getLogDevCfg {
             	# Check for failed stripes
                 case "Failed stripes" {
                     if ($linevalues[1] ne "No") {
-                    	if (scalar(@faildevices) eq 0 || !grep {$_ eq $devicenum} @faildevices) {
+                    	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
                     	}
                     	$status = myStatus($status, STATE_CRITICAL);
@@ -343,7 +340,10 @@ sub getLogDevCfg {
         }
     }
     
+	#FIXME What if devicenum is -1 here? Print a warning that PD num has not been found
+
     # Status output
+	#TODO Print number of PD failed e.g. Critical [PD failed=2]
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
     	if ($status eq 1) {
@@ -352,7 +352,7 @@ sub getLogDevCfg {
     		$statusMessage = "CRITICAL: Problems with $faildevicenum logical disk(s)."
     	}
     }
-    # Wenn Status hier nu immer OK is dann print "Physical Device Status: OK"
+    #TODO Return OK and print status and message at the end of main
 	if ($status eq 0) {
 		print $statusMessage . "OK";
 	} else {
@@ -471,5 +471,3 @@ RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
 FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
 SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGES.
-
-
