@@ -34,45 +34,57 @@ sub myStatus {
 
 # Explains the Usage of the plugin, also which options take which values
 # TODO: finished?!
+#Usage:
+#check_ipmi_sensor -H <hostname>
+  #[-f <FreeIPMI config file> | -U <username> -P <password> -L <privilege level>]
+  #[-O <FreeIPMI options>] [-b] [-T <sensor type>] [-x <sensor id>] [-v|-vv|-vvv]
+  #[-o zenoss] [-h] [-V]
 sub displayUsage {
 	print $NAME . "V.: " . $VERSION ."\n";
 	print "Usage:\n";
-	print "		-v(-vv,-vvv) --verbose		Sets the verbosity level\n";
-	print "		-h --help					Displays the Help page\n";
-	print "		-V --version					Displays the Version of the plugin and arcconf\n";
-	print "		-C # --controller #			Specifies a Controller number, defaults to 1\n";
-	print "		-LD # --logicaldevice #		Specifies one or more Logical Devices, defaults to all\n";
-	print "		-PD # --physicaldevice #	Specifies one or more Physical Devies, defaults to all\n";
-	print "		-T # --temperature #		Specifies a maximum temperature the RAID-Controller may have, default is 40 C\n";
-	print "		-p <str> --path <str>		Specifies the path to arcconf, default is /usr/bin/arcconf or C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
-	print "		-z <bool> --ZMM <bool>		Boolean Value which specifies if an Zero-Maintenance Module is Present (1 is present/0 is not Present). Default is 1\n";
-	exit(3);
+	print "  [ -C <Controller number> ] [ -LD <Logical device number> ]\n";
+	print "  [ -PD <Physical device number> ] [ -T <Temperature> ]\n";
+	print "  [ -p <Path>] [ -z <0/1> ]\n";
+	print "  -v(-vv,-vvv) --verbose		Sets the verbosity level\n";
+	print "  -h --help			Displays the Help page\n";
+	print "  -V --version			Displays the Version of the plugin and arcconf\n";
+	print "  -C # --controller #		Specifies a Controller number, defaults to 1\n";
+	print "  -LD # --logicaldevice #		Specifies one or more Logical Devices, defaults to all\n";
+	print "  -PD # --physicaldevice #	Specifies one or more Physical Devies, defaults to all\n";
+	print "  -T # --temperature #		Specifies a maximum temperature the RAID-Controller may have, default is 40 C\n";
+	print "  -p <str> --path <str>		Specifies the path to arcconf, default is /usr/bin/arcconf or C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
+	print "  -z <bool> --ZMM <bool>		Boolean Value which specifies if an Zero-Maintenance Module is Present (1 is present/0 is not Present). Default is 1\n";
 }
 
 # Displays a short Help text for the user
 # TODO: nicer formatting + more help?
 sub displayHelp {
 	print $NAME . "V.: " . $VERSION ."\n";
-	print "This Nagios/Icinga Plugin checks ADAPTEC RAID-Controllers for Warnings/Errors. \n";
-	print "Requirements: \n";
-	print "* Arcconf\n* Nagios/Icinga\n* sudo\n";
-	print "\n In order for this plugin to work properly you need to add nagios to your sudoers file (or create a new one for the nagios user)\n";
-	print "It is highly recommended that the nagios user only gets access to arcconf! For example: <nagios user> all nopasswd: /usr/bin/arcconf *\n";
-	exit(0);
+	print "Copyright (C) 2009-2013 Thomas-Krenn.AG";
+	print "Current updates available at http://www.thomas-krenn.com/en/oss/<NOT HERE YET!!!!!!>/\n";
+	print "This Nagios/Icinga Plugin checks ADAPTEC RAID-Controllers for Controller, Physical-Device and Logical Device warnings and errors. \n";
+	print "Requires arcconf, Nagios/Icinga, sudo\n";
+	print "In order for this plugin to work properly you need to add the nagios-user(\"nagios\" in most cases) to your sudoers file (or create a new one in /etc/sudoers.d/)\n";
+	print "It is highly recommended that the nagios user only gets access to arcconf! \nFor example: <nagios user> all nopasswd: /path/to/arcconf *\n";
+	displayUsage();
+	print "Further information about this plugin can be found at
+http://www.thomas-krenn.com/en/oss/<NOT THERE YET!>
+Send email to the <NOT THERE YET!>-plugin-user mailing list if you have questions regarding
+use of this software, to submit patches, or suggest improvements.
+The mailing list is available at http://lists.thomas-krenn.com/";
+	exit(STATE_UNKNOWN);
 }
  
 # Prints the Name, Version of the Plugin
 # Also Prints the name, version of arcconf and the version of the RAID-Controller
-# TODO: implement arcconf 1 GETVERSION
 sub displayVersion {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my @arcconfVersion = `$sudo $arcconf`;
 	print $NAME . "\nVersion: ". $VERSION . "\n\n";
-	#TODO Point out what version is printed here, is there a more clear way?
 	foreach my $line (@arcconfVersion){
 		if(index($line, "| UCLI |" ) ne "-1") {
-			$line =~ s/\s+\|.UCLI.\|\s+//g; # It ain't pretty but it works.
+			$line =~ s/\s+\|.UCLI.\|\s+//g;
 			print $line. "";
 		}
 	}
@@ -86,8 +98,6 @@ sub displayVersion {
 # 		- Status of ZMM if present
 # TODO: Nagios Dev Guidelines correct Threshold implementation (currently just takes > for warning and +20% for critical)
 
-#TODO Format messages to 'Failed Disks = Warning' etc.
-#TODO How to format verbose strings (e.g. Critical (Temp = Critical) [Temp = Critical, Failed Disk = Warning])
 sub getControllerCfg {
 	
 	my $sudo = $_[0];
@@ -108,20 +118,20 @@ sub getControllerCfg {
 
 			switch($linevalues[0]) {
 				# Overall Controller Status
-				case "Controller Status" { 
-					if ($linevalues[1] ne "Optimal") { 
+				case "Controller Status" {
+					if ($linevalues[1] ne "Optimal") {
 						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. Status = Critical, "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: Controller Status not Optimal "; }
-						if ($VERBOSITY >= 2) {$statusMessage .= "\nCRITICAL: The Controller Status is not running Optimal"; }
+						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. Status critical, "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "Controller Status is critical, "; }
+						if ($VERBOSITY >= 2) {$statusMessage .= "The Controller Status is not running Optimal, "; }
 					}
 				}
 				# Defunctional disks
 				case "Defunct disk drive count" { 
 					if ($linevalues[1] ne "0") { 
 						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "Defunct. Disks = Critical, "; }
-						if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Defunctional Disk Count: " . $linevalues[1] . ". "; }
+						if ($VERBOSITY == 0) {$statusMessage .= "Defunct. disks, "; }
+						if ($VERBOSITY >= 1) {$statusMessage .= $linevalues[1] . " disks are defunctional, "; }
 					}
 				}
 				
@@ -134,31 +144,34 @@ sub getControllerCfg {
 					my $totalDegraded = $3;
 					if ($totalFailed ne '0' || $totalDegraded ne '0') { 
 						$status = myStatus($status, STATE_WARNING);
-						if ($VERBOSITY == 0) {$statusMessage .= "Failed Disks = Warning, "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disks Failed/Degraded. "; }
-						if ($VERBOSITY == 2) {$statusMessage .= "\nWARNING: Disks have Failed or the Raid is degraded."; }	
-						if ($VERBOSITY == 3) {$statusMessage .= "\nWARNING: Disks have Failed or the Raid is degraded: (Total Disks: ". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . ")"; }
+						if ($VERBOSITY == 0) {$statusMessage .= "Log. device failed/degraded, "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "Logical devices have failed or are degraded, "; }
+						if ($VERBOSITY == 2) {$statusMessage .= "Disks have failed or the Raid is degraded, "; }	
+						if ($VERBOSITY == 3) {$statusMessage .= "Disks have failed or the Raid is degraded: (Total Disks: ". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . "), "; }
 					}
 				}
 				
 				# Warning if temperature is over the set Threshold 
 				# Critical if 20% over the set Threshold (Will be configureable in the future)
 				# http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
+				# Simple: 
+				# 		-w % for warning
+				#		-c % for critical
 				case "Temperature" {
 					my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
 					my $criticalTemp = $temperature + (2 * ( $temperature / 10 ));
 					if ( $controllerTemp > $criticalTemp) {
 						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. Temp. = Critical, "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: Temperature critical: " . $controllerTemp . " C. "; }
-						if ($VERBOSITY == 2) {$statusMessage .= "\nCRITICAL: Temperature critical: (20% over threshold): " . $controllerTemp . " C."; }	
-						if ($VERBOSITY == 3) {$statusMessage .= "\nCRITICAL: Temperature critical: (20% over threshold: ". $criticalTemp . " C):" . $controllerTemp . " C. "; }
+						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
+						if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: (20% over threshold): " . $controllerTemp . " C, "; }	
+						if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical: (20% over threshold: ". $criticalTemp . " C):" . $controllerTemp . " C, "; }
 					} elsif ($controllerTemp > $temperature) {
 						$status = myStatus($status, STATE_WARNING);
-						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. Temp. = Warning, "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Temperature Warning:" . $controllerTemp . " C. "; }
-						if ($VERBOSITY == 2) {$statusMessage .= "\nWARNING: Temperature Warning (Threshold: ". $temperature. " C): " . $controllerTemp . " C."; }
-						if ($VERBOSITY == 3) {$statusMessage .= "\nWARNING: Temperature Warning (Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ." C):" . $controllerTemp . " C. "; }
+						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning:" . $controllerTemp . " C, "; }
+						if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature. " C): " . $controllerTemp . " C,"; }
+						if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ." C):" . $controllerTemp . " C, "; }
 					}		
 				}
 				
@@ -167,9 +180,9 @@ sub getControllerCfg {
 					if ( $zmm == 1) {
 						if ($linevalues[1] ne "ZMM Optimal") { 
 							$status = myStatus($status, STATE_CRITICAL);
-							if ($VERBOSITY == 0) {$statusMessage .= "ZMM = Critical, "; }
-							if ($VERBOSITY == 1) {$statusMessage .= "CRITICAL: ZMM Not Optimal!"; }
-							if ($VERBOSITY >= 2) {$statusMessage .= "\nCRITICAL: Zero Maintenance Module Error or Module not found!"; }	
+							if ($VERBOSITY == 0) {$statusMessage .= "ZMM critical, "; }
+							if ($VERBOSITY == 1) {$statusMessage .= "ZMM Module state critical, "; }
+							if ($VERBOSITY >= 2) {$statusMessage .= "Zero Maintenance Module Error or Module not found!, "; }	
 						}
 					}
 				}
@@ -180,7 +193,7 @@ sub getControllerCfg {
 	return ($status, $statusMessage);
 }
 
-
+# TODO: Comment what this thing does
 sub getPhysDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
@@ -220,8 +233,8 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY == 0) {$statusMessage .= "Disk not online = Critical, "; }
-                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum is not online."; }
+                        if ($VERBOSITY == 0) {$statusMessage .= "Disk offline, "; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "Disk $devicenum is offline, "; }
                     }
                 }
             	
@@ -232,8 +245,8 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                     	$status = myStatus($status, STATE_CRITICAL);
-                    	if ($VERBOSITY == 0) {$statusMessage .= "S.M.A.R.T. bad = Critical, "; }
-                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum: S.M.A.R.T. status not ok."; }
+                    	if ($VERBOSITY == 0) {$statusMessage .= "S.M.A.R.T. critical, "; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "Disk $devicenum: S.M.A.R.T. status critical, "; }
                     }
                 }
             	
@@ -244,9 +257,9 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_WARNING);
-                        if ($VERBOSITY == 0) {$statusMessage .= "S.M.A.R.T. warn = Warning, "; }
-                        if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warning."; }
-                        if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Disk $devicenum: S.M.A.R.T. warnings is more than zero."; }
+                        if ($VERBOSITY == 0) {$statusMessage .= "S.M.A.R.T. warning, "; }
+                        if ($VERBOSITY == 1) {$statusMessage .= "Disk $devicenum: S.M.A.R.T. warnings, "; }
+                        if ($VERBOSITY >= 2) {$statusMessage .= "Disk $devicenum: \nDisk has one or more S.M.A.R.T. warnings, "; }
                     }
                 }
             	
@@ -257,9 +270,9 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY == 0) {$statusMessage .= "Low rpm = Warning, "; }
-                        if ($VERBOSITY == 1) {$statusMessage .= "WARNING: Disk $devicenum does not run with full speed."; }
-                        if ($VERBOSITY >= 2) {$statusMessage .= "WARNING: Disk $devicenum runs in a different power state (not full rpm)."; }
+                        if ($VERBOSITY == 0) {$statusMessage .= "Low rpm Warning, "; }
+                        if ($VERBOSITY == 1) {$statusMessage .= "Disk $devicenum does not run with full speed, "; }
+                        if ($VERBOSITY >= 2) {$statusMessage .= "Disk $devicenum: \nDisk run in a different power state (not full rpm), "; }
                 	}
                 }
             	
@@ -270,8 +283,8 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY == 0) {$statusMessage .= "Failed segm. = Critical"; }
-                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Disk $devicenum has failed logical device segments."; }
+                        if ($VERBOSITY == 0) {$statusMessage .= "Log. device Failed segm, "; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "Disk $devicenum has failed logical device segments, "; }
                 	}
                 }
             }
@@ -334,8 +347,8 @@ sub getLogDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY == 0) {$statusMessage .= "Log. disk bad = Critical, "; }
-                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Status of logical disk $devicenum is not optimal."; }
+                        if ($VERBOSITY == 0) {$statusMessage .= "Log. device critical, "; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "State of logical disk $devicenum is not optimal, "; }
                     }
                 }
             	
@@ -346,8 +359,8 @@ sub getLogDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                     	$status = myStatus($status, STATE_CRITICAL);
-                    	if ($VERBOSITY == 0) {$statusMessage .= "Failed stripes = Critical, "; }
-                        if ($VERBOSITY >= 1) {$statusMessage .= "CRITICAL: Logical disk $devicenum has failed stripes."; }
+                    	if ($VERBOSITY == 0) {$statusMessage .= "Failed stripes, "; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "Logical disk $devicenum has failed stripes, "; }
                     }
                 }
             }
@@ -392,11 +405,12 @@ MAIN: {
 		'C|controller=i' => \$controller,
 		'LD|logicaldevice=i{,}' => \@logDevices,
 		'PD|physicaldevice=i{,}' => \@physDevices, 
-		'T|temperature=i' => \$temperature,
+		'T|temperature=i' => \$temperature, #mit -w -c ersetzen?!
 		'p|path=s' => \$arcconf,
 		'z|ZMM=i' => \$zmm
 	)))	{
 		displayUsage();
+		exit(STATE_UNKNOWN);
 	}
 
 	# Check platform
@@ -407,7 +421,7 @@ MAIN: {
 		}
 		unless ( -e $arcconf && -x $sudo ) {
 			print "Permission denied or file not found!\n";
-			exit(3);
+			exit(STATE_UNKNOWN);
 		}
 	} else {
 		$sudo = '';
@@ -421,11 +435,11 @@ MAIN: {
  	my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
  	if($controllerVersion[1] eq "Invalid controller number.") {
  		print "Invalid controller number, device not found!";
- 		exit(3);
+ 		exit(STATE_UNKNOWN);
  	}
 	if(!$zmm =~ /(^[0-1]+)/) {
  		print "Invalid ZMM parameter, must be 0 or 1!";
-		exit(3);
+		exit(STATE_UNKNOWN);
 	}	
 
 	# Set exit status
@@ -441,9 +455,9 @@ MAIN: {
 	$newstatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newexitstatus, $EXITSTATUS);
 	switch($EXITSTATUS) {
-		case 0 { print "AACRAID OK (Device #$controller)\n"; }
-		case 1 { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID Warning (Dev. #$controller): [$newstatusMessage]\n"; }
-		case 2 { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID Critical (Dev. #$controller): [$newstatusMessage]\n"; }
+		case 0 { print "AACRAID OK (Ctrl #$controller)\n"; }
+		case 1 { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID WARNING (Ctrl #$controller): [$newstatusMessage]\n"; }
+		case 2 { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newstatusMessage]\n"; }
 	}
 	exit($EXITSTATUS);
 }
