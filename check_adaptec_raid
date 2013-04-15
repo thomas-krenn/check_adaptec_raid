@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Getopt::Long qw(:config no_ignore_case);
 use Data::Dumper;
-use Switch;
+use feature qw(switch);
 
 our $VERBOSITY = 0;
 our $VERSION = '0.1.3.4.6.233-ALPHA';
@@ -111,9 +111,9 @@ sub getControllerCfg {
 			$linevalues[0] =~ s/^\s+|\s+$//g;
 			$linevalues[1] =~ s/^\s+|\s+$//g;
 
-			switch($linevalues[0]) {
+			given($linevalues[0]) {
 				# Overall Controller Status
-				case "Controller Status" {
+				when("Controller Status") {
 					if ($linevalues[1] ne "Optimal") {
 						$status = myStatus($status, STATE_CRITICAL);
 						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. Status critical, "; }
@@ -122,7 +122,7 @@ sub getControllerCfg {
 					}
 				}
 				# Defunctional disks
-				case "Defunct disk drive count" { 
+				when("Defunct disk drive count") { 
 					if ($linevalues[1] ne "0") { 
 						$status = myStatus($status, STATE_CRITICAL);
 						if ($VERBOSITY == 0) {$statusMessage .= "Defunct. disks, "; }
@@ -132,7 +132,7 @@ sub getControllerCfg {
 				
 				# Logical Devices total/failed/degraded
 				# Warning since the raid is still recoverable, if it isnt you wont need a nagios plugin to notice that!
-				case "Logical devices/Failed/Degraded" { 
+				when("Logical devices/Failed/Degraded") { 
 					$linevalues[1] =~ /([0-9]+)\/([0-9]+)\/([0-9]+)/;
 					my $totalDisks = $1;
 					my $totalFailed = $2;
@@ -152,7 +152,7 @@ sub getControllerCfg {
 				# Simple: 
 				# 		-w % for warning
 				#		-c % for critical
-				case "Temperature" {
+				when("Temperature") {
 					my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
 					my $criticalTemp = $temperature + (2 * ( $temperature / 10 ));
 					if ( $controllerTemp > $criticalTemp) {
@@ -171,7 +171,7 @@ sub getControllerCfg {
 				}
 				
 				# Zero Maintenance Module
-				case "Status" { 
+				when("Status") { 
 					if ( $zmm == 1) {
 						if ($linevalues[1] ne "ZMM Optimal") { 
 							$status = myStatus($status, STATE_CRITICAL);
@@ -218,10 +218,10 @@ sub getPhysDevCfg {
             $linevalues[0] =~ s/^\s+|\s+$//g;
             $linevalues[1] =~ s/^\s+|\s+$//g;
 
-            switch($linevalues[0]) {
+            given($linevalues[0]) {
             
             	# Main disk status (Online/Offline?)
-                case "State" {
+                when("State") {
                     if ($linevalues[1] ne "Online") {
 						#check if device is in failed array, else add it
                     	if(!grep {$_ eq $devicenum} @faildevices) {
@@ -234,7 +234,7 @@ sub getPhysDevCfg {
                 }
             	
             	# Overall S.M.A.R.T. status
-                case "S.M.A.R.T." {
+                when("S.M.A.R.T.") {
                     if ($linevalues[1] ne "No") {
                     	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
@@ -246,7 +246,7 @@ sub getPhysDevCfg {
                 }
             	
             	# Check if any S.M.A.R.T. warnings occured
-                case "S.M.A.R.T. warnings" {
+                when("S.M.A.R.T. warnings") {
                     if ($linevalues[1] ne "0") {
                     	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
@@ -259,7 +259,7 @@ sub getPhysDevCfg {
                 }
             	
             	# Check if the disk does not run with full (physical) speed
-                case "Power state" {
+                when("Power state") {
                 	if ($linevalues[1] ne "Full rpm") {
                     	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
@@ -272,7 +272,7 @@ sub getPhysDevCfg {
                 }
             	
             	# Look for bad device segments
-                case "Failed logical device segments" {
+                when("Failed logical device segments") {
                 	if ($linevalues[1] eq "True") {
                     	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
@@ -333,10 +333,10 @@ sub getLogDevCfg {
             $linevalues[0] =~ s/^\s+|\s+$//g;
             $linevalues[1] =~ s/^\s+|\s+$//g;
 
-            switch($linevalues[0]) {
+            given($linevalues[0]) {
             
             	# Main logical device status (Optimal/Failed?)
-                case "Status of logical device" {
+                when("Status of logical device") {
                     if ($linevalues[1] ne "Optimal") {
                     	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
@@ -348,7 +348,7 @@ sub getLogDevCfg {
                 }
             	
             	# Check for failed stripes
-                case "Failed stripes" {
+                when("Failed stripes") {
                     if ($linevalues[1] ne "No") {
                     	if (!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
@@ -449,10 +449,10 @@ MAIN: {
 	($newexitstatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, @logDevices);
 	$newstatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newexitstatus, $EXITSTATUS);
-	switch($EXITSTATUS) {
-		case 0 { print "AACRAID OK (Ctrl #$controller)\n"; }
-		case 1 { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID WARNING (Ctrl #$controller): [$newstatusMessage]\n"; }
-		case 2 { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newstatusMessage]\n"; }
+	given($EXITSTATUS) {
+		when(0) { print "AACRAID OK (Ctrl #$controller)\n"; }
+		when(1) { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID WARNING (Ctrl #$controller): [$newstatusMessage]\n"; }
+		when(2) { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newstatusMessage]\n"; }
 	}
 	exit($EXITSTATUS);
 }
