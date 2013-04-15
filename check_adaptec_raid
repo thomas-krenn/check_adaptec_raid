@@ -31,36 +31,40 @@ sub myStatus {
 	
 	return $returnStatus;
 }
-
+# be verbose
+#         (no -v) .. single line output
+#         -v   ..... single line output with additional details for warnings
+#         -vv  ..... multi line output, also with additional details for warnings
+#         -vvv ..... debugging output, followed by normal multi line output
 # Explains the Usage of the plugin, also which options take which values
 # TODO: finished?!
 sub displayUsage {
-	print $NAME . " Version: " . $VERSION ."\n";
 	print "Usage: \n";
 	print "  [ -C <Controller number> ] [ -LD <Logical device number> ]\n";
 	print "  [ -PD <Physical device number> ] [ -T <Temperature> ]\n";
-	print "  [ -p <Path>] [ -z <0/1> ]\n";
-	print "  -v(-vv,-vvv) --verbose		Sets the verbosity level\n";
-	print "  -h --help			Displays the Help page\n";
-	print "  -V --version			Displays the Version of the plugin and arcconf\n";
-	print "  -C # --controller #		Specifies a Controller number, defaults to 1\n";
-	print "  -LD # --logicaldevice #		Specifies one or more Logical Devices, defaults to all\n";
-	print "  -PD # --physicaldevice #	Specifies one or more Physical Devies, defaults to all\n";
-	print "  -T # --temperature #		Specifies a maximum temperature the RAID-Controller may have, default is 40 C\n";
-	print "  -p <str> --path <str>		Specifies the path to arcconf, default is /usr/bin/arcconf or C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
-	print "  -z <bool> --ZMM <bool>		Boolean Value which specifies if an Zero-Maintenance Module is Present (1 is present/0 is not Present). Default is 1\n";
+	print "  [ -p <Path> ] [ -z <0/1> ]\n";
+	print "  [ -h | --help ]\n	Display this help page\n";
+	print "  [ -v | -vv | -vvv | --verbose ]\n	Sets the verbosity level.\n	no -v is the normal single line output for Nagios/Icinga\n	-v is a more detailed version but still usable in Nagios.\n	-vv is a multiline output for debugging configuration errors or more detailed information.\n	-vvv is for plugin problem diagnosis.\n	For further information please visit: http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN39\n";
+	print "  [ -V --version ]\n	Displays the Version of the tk-adaptec-plugin and the version of arcconf\n";
+	print "  [ -C <Controller Number> | --controller <Controller Number> ]\n	Specifies a Controller number, defaults to 1\n";
+	print "  [ -LD | --logicaldevice ]\n	Specifies one or more Logical Devices, defaults to all\n	Takes either an integer as additional argument (>=0) or a comma seperated list(0,1,2,3,...)\n";
+	print "  [ -PD | --physicaldevice ]\n	Specifies one or more Physical Devies, defaults to all\n	Takes either an integer as additional argument (>=0) or a comma seperated list(0,1,2,3,...)\n";
+	print "  [ -T | --temperature ]\n	Specifies a maximum temperature the RAID-Controller may have, default is 40 C\n";
+	print "  [ -p <path> | --path <path>]\n	Specifies the path to arcconf, default is /usr/bin/arcconf or C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
+	print "  [ -z <0/1> | ZMM <0/1> ]\n	Boolean Value which specifies if an Zero-Maintenance Module is Present (1 is present/0 is not Present). Default is 1\n	This option is only needed if you have an Adaptec-Raid Controller without a Zero Maintenance Module.";
 }
 
 # Displays a short Help text for the user
 # TODO: nicer formatting + more help?
 sub displayHelp {
-	print $NAME . "V.: " . $VERSION ."\n";
-	print "Copyright (C) 2009-2013 Thomas-Krenn.AG";
+	print $NAME . " Version: " . $VERSION ."\n";
+	print "Copyright (C) 2009-2013 Thomas-Krenn.AG\n";
 	print "Current updates available at http://www.thomas-krenn.com/en/oss/<NOT HERE YET!!!!!!>/\n";
-	print "This Nagios/Icinga Plugin checks ADAPTEC RAID-Controllers for Controller, Physical-Device and Logical Device warnings and errors. \n";
-	print "Requires arcconf, Nagios/Icinga, sudo\n";
-	print "In order for this plugin to work properly you need to add the nagios-user(\"nagios\" in most cases) to your sudoers file (or create a new one in /etc/sudoers.d/)\n";
-	print "It is highly recommended that the nagios user only gets access to arcconf! \nFor example: <nagios user> all nopasswd: /path/to/arcconf *\n";
+	print "This Nagios/Icinga Plugin checks ADAPTEC RAID-Controllers for Controller, \nPhysical-Device and Logical Device warnings and errors. \n";
+#	print "Requires arcconf, Nagios/Icinga, sudo\n";
+	print "In order for this plugin to work properly you need to add the \nnagios-user to your sudoers file (or create a new one in /etc/sudoers.d/)\n";
+#	print "It is highly recommended that the nagios user only gets access to arcconf! \n";
+	#For example: <nagios user> all nopasswd: /path/to/arcconf *\n (for the wiki page)
 	displayUsage();
 	print "Further information about this plugin can be found at
 http://www.thomas-krenn.com/en/oss/<NOT THERE YET!>
@@ -404,6 +408,7 @@ MAIN: {
 		'p|path=s' => \$arcconf,
 		'z|ZMM=i' => \$zmm
 	)))	{
+		print $NAME . " Version: " . $VERSION ."\n";
 		displayUsage();
 		exit(STATE_UNKNOWN);
 	}
