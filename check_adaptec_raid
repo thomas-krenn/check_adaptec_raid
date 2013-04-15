@@ -34,14 +34,9 @@ sub myStatus {
 
 # Explains the Usage of the plugin, also which options take which values
 # TODO: finished?!
-#Usage:
-#check_ipmi_sensor -H <hostname>
-  #[-f <FreeIPMI config file> | -U <username> -P <password> -L <privilege level>]
-  #[-O <FreeIPMI options>] [-b] [-T <sensor type>] [-x <sensor id>] [-v|-vv|-vvv]
-  #[-o zenoss] [-h] [-V]
 sub displayUsage {
-	print $NAME . "V.: " . $VERSION ."\n";
-	print "Usage:\n";
+	print $NAME . " Version: " . $VERSION ."\n";
+	print "Usage: \n";
 	print "  [ -C <Controller number> ] [ -LD <Logical device number> ]\n";
 	print "  [ -PD <Physical device number> ] [ -T <Temperature> ]\n";
 	print "  [ -p <Path>] [ -z <0/1> ]\n";
