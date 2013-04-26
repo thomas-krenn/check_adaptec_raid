@@ -4,15 +4,95 @@ __END__
 
 check_adaptec_raid - nagios/icinga plugin to check adaptec raid controllers
 
+=head1 SYNOPSIS
+
+Example:
+
+	./check_adaptec_raid -T 30,40 -C 1 -LD 0,1 -PD 1 -z 0
+	AACRAID CRITICAL (Ctrl #1): [Ctrl. Status critical, Ctrl. temp. critical, Log. device failed/degraded,]
+
 =head1 VERSION
 
-This document describes plugin version 0.0.1
+This document describes plugin version 0.1
 
 =head1 DESCRIPTION
+
+check_adaptec_raid is a Nagios/Icinga Plugin to check Adaptec Raid Controllers for errors/warnings.
+This plugin makes heavy use of 'arcconf' which can be obtained from the Adaptec Homepage. It checks the controller, the physical devices and the logical devices seperately for errors or warnings(For more detailed information about what is beeing monitored see METHODS).
+
+=head1 DEPENDENCIES
+
+- This plugin requires a running Nagios or Icinga. (either local or NRPE)
+
+- sudo 
+
+- arcconf (Can be obtained from the Adaptec Homepage)
+
+- the following Perl Modules:
+
+	use strict;
+	use warnings;
+	use Getopt::Long qw(:config no_ignore_case);
+	use Data::Dumper;
+	use feature qw(switch);
 
 =head1 METHODS
 
 =head2 myStatus
+
+Sets the correct exit code for each function.
+Can only increment the Exit code (if necessary) since the exit code may not change from Warning to Ok.
+
+=head2 displayUsage
+
+Explains the Usage of the plugin and which parameters are available.
+
+=head2 displayHelp
+
+Prints a short help text and quick information where to find additional help.
+
+=head2 displayVersion
+
+Prints the Plugin Version and the arcconf version.
+
+=head2 getControllerCfg
+
+Checks the Adaptec Raid Controller for Controller Errors. (uses arcconf GETCONFIG 1 AD)
+
+- Controller Status
+
+- Defunctional Disks
+
+- Logical Devices which have failed/are degraded
+
+- Temperature
+
+- Status of ZMM if present 
+
+The controller temperature can be set to a warning/critical level (parameter: -T|--temperature).
+If no ZMM Module is present the check can be disabled (--zmm 0).
+
+=head2 getPhysDevCfg 
+
+Returns Information about physical Devices attached to the Adaptec Raid-Controller:
+
+- Disk Status
+
+- S.M.A.R.T. Status
+
+- S.M.A.R.T. Warnings
+
+- Low-RPM Warnings
+
+- Failed Disk Segments
+
+=head2 getLogDevCfg
+
+Returns Information about logical Devices:
+
+- General Logical Devices Status
+
+- Failed Stripes
 
 TODO: Description
 

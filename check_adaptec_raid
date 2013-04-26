@@ -96,7 +96,7 @@ sub getControllerCfg {
 	my $zmm = $_[4];
 	my $status = 0; # Return Status
 	my $statusMessage = ''; # Return String
-	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
+	my @output = `$sudo $arcconf GETCONFIG $controller AD`;
 	my @linevalues;
 	
 	foreach my $line (@output) {
