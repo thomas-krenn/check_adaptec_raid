@@ -8,7 +8,7 @@ use Data::Dumper;
 use feature qw(switch);
 
 our $VERBOSITY = 0;
-our $VERSION = '0.1.3.4.6.233-ALPHA';
+our $VERSION = '0.1';
 our $NAME = "Thomas-Krenn AG Adaptec Raid Controller Nagios/Icinga Plugin";
 our $EXITSTATUS = 0;
 use constant { 
@@ -31,31 +31,29 @@ sub myStatus {
 	
 	return $returnStatus;
 }
-# be verbose
-#         (no -v) .. single line output
-#         -v   ..... single line output with additional details for warnings
-#         -vv  ..... multi line output, also with additional details for warnings
-#         -vvv ..... debugging output, followed by normal multi line output
+
+
 # Explains the Usage of the plugin, also which options take which values
 # TODO: finished?!
 sub displayUsage {
+#	print "X"x80 ."\n";
 	print "Usage: \n";
 	print "  [ -C <Controller number> ] [ -LD <Logical device number> ]\n";
 	print "  [ -PD <Physical device number> ] [ -T <Temperature> ]\n";
 	print "  [ -p <Path> ] [ -z <0/1> ]\n";
 	print "  [ -h | --help ]\n	Display this help page\n";
-	print "  [ -v | -vv | -vvv | --verbose ]\n	Sets the verbosity level.\n	no -v is the normal single line output for Nagios/Icinga\n	-v is a more detailed version but still usable in Nagios.\n	-vv is a multiline output for debugging configuration errors or more detailed information.\n	-vvv is for plugin problem diagnosis.\n	For further information please visit: http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN39\n";
+	print "  [ -v | -vv | -vvv | --verbose ]\n	Sets the verbosity level\n	no -v single line output for Nagios/Icinga\n	-v   single line with more details\n	-vv  multiline output for debugging errors and more detailed information\n	-vvv is for plugin problem diagnosis\n";
 	print "  [ -V --version ]\n	Displays the Version of the tk-adaptec-plugin and the version of arcconf\n";
-	print "  [ -C <Controller Number> | --controller <Controller Number> ]\n	Specifies a Controller number, defaults to 1\n";
-	print "  [ -LD | --logicaldevice ]\n	Specifies one or more Logical Devices, defaults to all\n	Takes either an integer as additional argument (>=0) or a comma seperated list(0,1,2,3,...)\n";
-	print "  [ -PD | --physicaldevice ]\n	Specifies one or more Physical Devies, defaults to all\n	Takes either an integer as additional argument (>=0) or a comma seperated list(0,1,2,3,...)\n";
-	print "  [ -T | --temperature ]\n	Specifies a maximum temperature the RAID-Controller may have, default is 40 C\n";
-	print "  [ -p <path> | --path <path>]\n	Specifies the path to arcconf, default is /usr/bin/arcconf or C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
-	print "  [ -z <0/1> | ZMM <0/1> ]\n	Boolean Value which specifies if an Zero-Maintenance Module is Present (1 is present/0 is not Present). Default is 1\n	This option is only needed if you have an Adaptec-Raid Controller without a Zero Maintenance Module.";
+	print "  [ -C <Controller Number> | --controller <Controller Number> ]\n	Specifies a Controller number, (Default 1).\n";
+	print "  [ -LD | --logicaldevice <Log. device number> ]\n	Specifies one or more Logical Devices to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
+	print "  [ -PD | --physicaldevice <Phys. device number> ]\n	Specifies one or more Physical Devies to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
+	print "  [ -T | --temperature ]\n	Specifies a maximum temperature the RAID-Controller may have, (Default 60 C)\n";
+	print "  [ -p <path> | --path <path>]\n	Specifies the path to arcconf.\n	Default is /usr/bin/arcconf  C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
+	print "  [ -z <0/1> | ZMM <0/1> ]\n	Boolean Value which specifies if a Zero-Maintenance Module is available\n	(1 is available, 0 is not available). (Default 1)\n	This option is required if you have an Adaptec Raid Controller without a ZMM.\n\n";
 }
 
 # Displays a short Help text for the user
-# TODO: nicer formatting + more help?
+# TODO: ADD URL and Mailing List
 sub displayHelp {
 	print $NAME . " Version: " . $VERSION ."\n";
 	print "Copyright (C) 2009-2013 Thomas-Krenn.AG\n";
@@ -96,13 +94,12 @@ sub displayVersion {
 #		- Temperature
 # 		- Status of ZMM if present
 # TODO: Nagios Dev Guidelines correct Threshold implementation (currently just takes > for warning and +20% for critical)
-
 sub getControllerCfg {
 	
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
-	my $temperature = $_[3];
+	my @temperature = $_[3];
 	my $zmm = $_[4];
 	my $status = 0; # Return Status
 	my $statusMessage = ''; # Return String
@@ -151,26 +148,22 @@ sub getControllerCfg {
 				}
 				
 				# Warning if temperature is over the set Threshold 
-				# Critical if 20% over the set Threshold (Will be configureable in the future)
-				# http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
-				# Simple: 
-				# 		-w % for warning
-				#		-c % for critical
 				when("Temperature") {
 					my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
-					my $criticalTemp = $temperature + (2 * ( $temperature / 10 ));
+					my $warningTemp = $temperature[0];
+					my $criticalTemp = $temperature[1];
 					if ( $controllerTemp > $criticalTemp) {
 						$status = myStatus($status, STATE_CRITICAL);
 						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
 						if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
 						if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: (20% over threshold): " . $controllerTemp . " C, "; }	
 						if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical: (20% over threshold: ". $criticalTemp . " C):" . $controllerTemp . " C, "; }
-					} elsif ($controllerTemp > $temperature) {
+					} elsif ($controllerTemp > $warningTemp) {
 						$status = myStatus($status, STATE_WARNING);
 						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
 						if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning:" . $controllerTemp . " C, "; }
-						if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature. " C): " . $controllerTemp . " C,"; }
-						if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature. ", Critical Threshold:". $criticalTemp ." C):" . $controllerTemp . " C, "; }
+						if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $warningTemp. " C): " . $controllerTemp . " C,"; }
+						if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $warningTemp. ", Critical Threshold:". $criticalTemp ." C):" . $controllerTemp . " C, "; }
 					}		
 				}
 				
@@ -181,7 +174,7 @@ sub getControllerCfg {
 							$status = myStatus($status, STATE_CRITICAL);
 							if ($VERBOSITY == 0) {$statusMessage .= "ZMM critical, "; }
 							if ($VERBOSITY == 1) {$statusMessage .= "ZMM Module state critical, "; }
-							if ($VERBOSITY >= 2) {$statusMessage .= "Zero Maintenance Module Error or Module not found!, "; }	
+							if ($VERBOSITY >= 2) {$statusMessage .= "Zero Maintenance Module error or module not found!, "; }	
 						}
 					}
 				}
@@ -192,7 +185,12 @@ sub getControllerCfg {
 	return ($status, $statusMessage);
 }
 
-# TODO: Comment what this thing does
+# Returns Information about physical Devices attached to the Adaptec Raid-Controller:
+#		- Disk Status
+#		- S.M.A.R.T. Status
+#		- S.M.A.R.T. Warnings
+#		- Low-RPM Warnings
+#		- Failed Disk Segments
 sub getPhysDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
@@ -269,7 +267,7 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY == 0) {$statusMessage .= "Low rpm Warning, "; }
+                        if ($VERBOSITY == 0) {$statusMessage .= "Low rpm warning, "; }
                         if ($VERBOSITY == 1) {$statusMessage .= "Disk $devicenum does not run with full speed, "; }
                         if ($VERBOSITY >= 2) {$statusMessage .= "Disk $devicenum: \nDisk run in a different power state (not full rpm), "; }
                 	}
@@ -282,28 +280,29 @@ sub getPhysDevCfg {
                     		push(@faildevices, $devicenum);
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
-                        if ($VERBOSITY == 0) {$statusMessage .= "Log. device Failed segm, "; }
+                        if ($VERBOSITY == 0) {$statusMessage .= "Log. device failed segm, "; }
                         if ($VERBOSITY >= 1) {$statusMessage .= "Disk $devicenum has failed logical device segments, "; }
                 	}
                 }
             }
         }
     }
-	#FIXME What if devicenum is -1 here? Print a warning that PD num has not been found
+	# Invalid Logical Device Error
+    if ( $devicenum eq -1 ) { 
+    	$statusMessage .= "Invalid Log Device, ";
+    	myStatus($status, STATE_UNKNOWN); 
+    }
     
     # Status output
-    # TODO: print number of failed disks in verbosity level 0?
-
-=begin
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
-    	if ($status eq 1) {
-    		$statusMessage = "WARNING: Problems with $faildevicenum physical disk(s).";
+    	if ($status eq STATE_WARNING) {
+    		$statusMessage .= "$faildevicenum phys. disk(s) failed, ";
     	} else {
-    		$statusMessage = "CRITICAL: Problems with $faildevicenum physical disk(s)."
+    		$statusMessage .= "$faildevicenum phys. disk(s) failed, ";
     	}
     }
-=cut
+
     return ($status, $statusMessage);
 }
 
@@ -347,7 +346,7 @@ sub getLogDevCfg {
                     	}
                         $status = myStatus($status, STATE_CRITICAL);
                         if ($VERBOSITY == 0) {$statusMessage .= "Log. device critical, "; }
-                        if ($VERBOSITY >= 1) {$statusMessage .= "State of logical disk $devicenum is not optimal, "; }
+                        if ($VERBOSITY >= 1) {$statusMessage .= "State of logical disk $devicenum critical, "; }
                     }
                 }
             	
@@ -366,20 +365,22 @@ sub getLogDevCfg {
         }
     }
     
-	#FIXME What if devicenum is -1 here? Print a warning that PD num has not been found
-
-    # Status output
-	#TODO Print number of PD failed e.g. Critical [PD failed=2]
-=begin
+	# Invalid Logical Device Error
+    if ( $devicenum eq -1 ) { 
+    	$statusMessage .= "Invalid Log Device, ";
+    	myStatus($status, STATE_UNKNOWN); 
+    }
+	
+	# Status Output
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
-    	if ($status eq 1) {
-    		$statusMessage = "WARNING: Problems with $faildevicenum logical disk(s).";
+    	if ($status eq STATE_WARNING) {
+    		$statusMessage = "$faildevicenum log. device(s) failed.";
     	} else {
-    		$statusMessage = "CRITICAL: Problems with $faildevicenum logical disk(s)."
+    		$statusMessage = "$faildevicenum log. device(s) failed.";
     	}
     }
-=cut
+
     return ($status, $statusMessage);
 }
 
@@ -391,7 +392,7 @@ MAIN: {
 	my $sudo = ''; 
 	my $arcconf = '';
 	my $platform = $^O;
- 	my $temperature = 40;
+ 	my @temperature = 50,60;
  	my $zmm = 1; # boolean
  	my $statusMessage = ''; # printed status message
 	
@@ -404,7 +405,7 @@ MAIN: {
 		'C|controller=i' => \$controller,
 		'LD|logicaldevice=i{,}' => \@logDevices,
 		'PD|physicaldevice=i{,}' => \@physDevices, 
-		'T|temperature=i' => \$temperature, #mit -w -c ersetzen?!
+		'T|temperature=i{,}' => \@temperature, #mit -w -c ersetzen?!
 		'p|path=s' => \$arcconf,
 		'z|ZMM=i' => \$zmm
 	)))	{
@@ -443,21 +444,21 @@ MAIN: {
 	}	
 
 	# Set exit status
-	my $newexitstatus = 0;
-	my $newstatusMessage = '';
-	($newexitstatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, $temperature, $zmm);
-	$newstatusMessage .= $statusMessage;
-	$EXITSTATUS = myStatus($newexitstatus, $EXITSTATUS);
-	($newexitstatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
-	$newstatusMessage .= $statusMessage;
-	$EXITSTATUS = myStatus($newexitstatus, $EXITSTATUS);
-	($newexitstatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, @logDevices);
-	$newstatusMessage .= $statusMessage;
-	$EXITSTATUS = myStatus($newexitstatus, $EXITSTATUS);
+	my $newExitStatus = 0;
+	my $newStatusMessage = '';
+	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, @temperature, $zmm);
+	$newStatusMessage .= $statusMessage;
+	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
+	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	$newStatusMessage .= $statusMessage;
+	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
+	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, @logDevices);
+	$newStatusMessage .= $statusMessage;
+	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
 	given($EXITSTATUS) {
 		when(0) { print "AACRAID OK (Ctrl #$controller)\n"; }
-		when(1) { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID WARNING (Ctrl #$controller): [$newstatusMessage]\n"; }
-		when(2) { if($VERBOSITY eq 0) { chop($newstatusMessage); chop($newstatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newstatusMessage]\n"; }
+		when(1) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID WARNING (Ctrl #$controller): [$newStatusMessage]\n"; }
+		when(2) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newStatusMessage]\n"; }
 	}
 	exit($EXITSTATUS);
 }
