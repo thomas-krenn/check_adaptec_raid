@@ -7,7 +7,7 @@ Controller information
    Controller Model                         : Adaptec 6805Q
    Controller Serial Number                 : 0148118595B
    Physical Slot                            : 17
-   Temperature                              : 63 C/ 145 F (Normal)
+   Temperature                              : 30 C/ 145 F (Normal)
    Installed memory                         : 512 MB
    Copyback                                 : Disabled
    Background consistency check             : Disabled
@@ -18,7 +18,7 @@ Controller information
    Spinup limit internal drives             : 0
    Spinup limit external drives             : 0
    Defunct disk drive count                 : 0
-   Logical devices/Failed/Degraded          : 2/1/0
+   Logical devices/Failed/Degraded          : 2/0/0
    SSDs assigned to MaxCache pool           : 0
    Maximum SSDs allowed in MaxCache pool    : 8
    MaxCache Read Cache Pool Size            : 0.000 GB

@@ -34,12 +34,10 @@ sub myStatus {
 
 
 # Explains the Usage of the plugin, also which options take which values
-# TODO: finished?!
 sub displayUsage {
-#	print "X"x80 ."\n";
 	print "Usage: \n";
 	print "  [ -C <Controller number> ] [ -LD <Logical device number> ]\n";
-	print "  [ -PD <Physical device number> ] [ -T <Temperature> ]\n";
+	print "  [ -PD <Physical device number> ] [ -T <Warning Temp., Crit. Temp.> ]\n";
 	print "  [ -p <Path> ] [ -z <0/1> ]\n";
 	print "  [ -h | --help ]\n	Display this help page\n";
 	print "  [ -v | -vv | -vvv | --verbose ]\n	Sets the verbosity level\n	no -v single line output for Nagios/Icinga\n	-v   single line with more details\n	-vv  multiline output for debugging errors and more detailed information\n	-vvv is for plugin problem diagnosis\n";
@@ -47,7 +45,7 @@ sub displayUsage {
 	print "  [ -C <Controller Number> | --controller <Controller Number> ]\n	Specifies a Controller number, (Default 1).\n";
 	print "  [ -LD | --logicaldevice <Log. device number> ]\n	Specifies one or more Logical Devices to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
 	print "  [ -PD | --physicaldevice <Phys. device number> ]\n	Specifies one or more Physical Devies to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
-	print "  [ -T | --temperature ]\n	Specifies a maximum temperature the RAID-Controller may have, (Default 60 C)\n";
+	print "  [ -T | --temperature <W,C>]\n	Specifies a Warning,Critical temperature(e.g. -T 30,40) for the RAID-Controller.\n	(Default Warning 50 C, Critical 60 C)\n";
 	print "  [ -p <path> | --path <path>]\n	Specifies the path to arcconf.\n	Default is /usr/bin/arcconf  C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
 	print "  [ -z <0/1> | ZMM <0/1> ]\n	Boolean Value which specifies if a Zero-Maintenance Module is available\n	(1 is available, 0 is not available). (Default 1)\n	This option is required if you have an Adaptec Raid Controller without a ZMM.\n\n";
 }
@@ -59,10 +57,7 @@ sub displayHelp {
 	print "Copyright (C) 2009-2013 Thomas-Krenn.AG\n";
 	print "Current updates available at http://www.thomas-krenn.com/en/oss/<NOT HERE YET!!!!!!>/\n";
 	print "This Nagios/Icinga Plugin checks ADAPTEC RAID-Controllers for Controller, \nPhysical-Device and Logical Device warnings and errors. \n";
-#	print "Requires arcconf, Nagios/Icinga, sudo\n";
 	print "In order for this plugin to work properly you need to add the \nnagios-user to your sudoers file (or create a new one in /etc/sudoers.d/)\n";
-#	print "It is highly recommended that the nagios user only gets access to arcconf! \n";
-	#For example: <nagios user> all nopasswd: /path/to/arcconf *\n (for the wiki page)
 	displayUsage();
 	print "Further information about this plugin can be found at
 http://www.thomas-krenn.com/en/oss/<NOT THERE YET!>
@@ -93,13 +88,11 @@ sub displayVersion {
 #		- Logical Devices which have failed/are degraded
 #		- Temperature
 # 		- Status of ZMM if present
-# TODO: Nagios Dev Guidelines correct Threshold implementation (currently just takes > for warning and +20% for critical)
 sub getControllerCfg {
-	
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
-	my @temperature = $_[3];
+	my @temperature = @{($_[3])};
 	my $zmm = $_[4];
 	my $status = 0; # Return Status
 	my $statusMessage = ''; # Return String
@@ -152,18 +145,18 @@ sub getControllerCfg {
 					my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
 					my $warningTemp = $temperature[0];
 					my $criticalTemp = $temperature[1];
-					if ( $controllerTemp > $criticalTemp) {
+					if ( $controllerTemp > $criticalTemp ) {
 						$status = myStatus($status, STATE_CRITICAL);
 						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
 						if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
-						if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: (20% over threshold): " . $controllerTemp . " C, "; }	
-						if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical: (20% over threshold: ". $criticalTemp . " C):" . $controllerTemp . " C, "; }
+						if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }	
+						if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $criticalTemp . " C):" . $controllerTemp . " C, "; }
 					} elsif ($controllerTemp > $warningTemp) {
 						$status = myStatus($status, STATE_WARNING);
 						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning:" . $controllerTemp . " C, "; }
+						if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning: " . $controllerTemp . " C, "; }
 						if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $warningTemp. " C): " . $controllerTemp . " C,"; }
-						if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $warningTemp. ", Critical Threshold:". $criticalTemp ." C):" . $controllerTemp . " C, "; }
+						if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $warningTemp. ", Critical Threshold: ". $criticalTemp ." C):" . $controllerTemp . " C, "; }
 					}		
 				}
 				
@@ -195,7 +188,7 @@ sub getPhysDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
     my $controller = $_[2];
-    my @devices = $_[3];
+    my @devices = @{($_[3])};
     my $devicenum = -1;
     my $status = 0; #Return Status
     my $statusMessage = ''; # Return String
@@ -221,7 +214,6 @@ sub getPhysDevCfg {
             $linevalues[1] =~ s/^\s+|\s+$//g;
 
             given($linevalues[0]) {
-            
             	# Main disk status (Online/Offline?)
                 when("State") {
                     if ($linevalues[1] ne "Online") {
@@ -287,6 +279,7 @@ sub getPhysDevCfg {
             }
         }
     }
+    
 	# Invalid Logical Device Error
     if ( $devicenum eq -1 ) { 
     	$statusMessage .= "Invalid Log Device, ";
@@ -306,12 +299,14 @@ sub getPhysDevCfg {
     return ($status, $statusMessage);
 }
 
-
+# Returns Information about logical Devices:
+#		- General Logical Devices Status
+#		- Failed Stripes
 sub getLogDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
     my $controller = $_[2];
-    my @devices = $_[3];
+    my @devices = @{($_[3])};
     my $devicenum = -1;
     my $status = 0; #Return status
     my $statusMessage = ''; #Return string
@@ -375,7 +370,7 @@ sub getLogDevCfg {
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
     	if ($status eq STATE_WARNING) {
-    		$statusMessage = "$faildevicenum log. device(s) failed.";
+    		$statusMessage = "$faildevicenum log. device(s) failed, ";
     	} else {
     		$statusMessage = "$faildevicenum log. device(s) failed.";
     	}
@@ -389,23 +384,23 @@ MAIN: {
 	my $controller = 1;
 	my @logDevices; 
 	my @physDevices;
-	my $sudo = ''; 
-	my $arcconf = '';
+	my $sudo; 
+	my $arcconf;
 	my $platform = $^O;
- 	my @temperature = 50,60;
+ 	my @temperature;
  	my $zmm = 1; # boolean
- 	my $statusMessage = ''; # printed status message
+ 	my $statusMessage; # printed status message
 	
 	if ( !(GetOptions(
-		'v|verbose' => sub {$VERBOSITY = 1 },
-		'vv' => sub {$VERBOSITY = 2},
-		'vvv' => sub {$VERBOSITY = 3},
+		'v|verbose' => sub { $VERBOSITY = 1 },
+		'vv' => sub { $VERBOSITY = 2 },
+		'vvv' => sub { $VERBOSITY = 3 },
 		'h|help' => sub {displayHelp();},
 		'V|version' => sub {displayVersion($sudo, $arcconf);},
 		'C|controller=i' => \$controller,
-		'LD|logicaldevice=i{,}' => \@logDevices,
-		'PD|physicaldevice=i{,}' => \@physDevices, 
-		'T|temperature=i{,}' => \@temperature, #mit -w -c ersetzen?!
+		'LD|logicaldevice=s' => \@logDevices,
+		'PD|physicaldevice=s' => \@physDevices, 
+		'T|temperature=s' => \@temperature,
 		'p|path=s' => \$arcconf,
 		'z|ZMM=i' => \$zmm
 	)))	{
@@ -413,11 +408,20 @@ MAIN: {
 		displayUsage();
 		exit(STATE_UNKNOWN);
 	}
-
+	
+	@logDevices = split(/,/,join(',', @logDevices));
+	@physDevices = split(/,/,join(',', @physDevices));
+	if (!@temperature) {
+		@temperature = (50,60);
+	}
+	else{
+		@temperature = split(/,/,join(',', @temperature));
+	}
+	
 	# Check platform
 	if ($platform eq 'linux') {
-		chomp($sudo= `which sudo`);
-		if ($arcconf eq '') {
+		chomp($sudo= `/usr/bin/sudo`);
+		if (!$arcconf) {
 			$arcconf = '/usr/bin/arcconf';
 		}
 		unless ( -e $arcconf && -x $sudo ) {
@@ -426,10 +430,10 @@ MAIN: {
 		}
 	} else {
 		$sudo = '';
-		if ($arcconf eq '') {
+		if (!$arcconf) {
 			$arcconf = 'C:\Programme\Adaptec\RemoteArcconf\arcconf.exe';
 		}
-		unless ( -e $arcconf ) { print "Executable not found!\n"; exit(3); }
+		unless ( -e $arcconf ) { print "Executable not found!\n"; exit(STATE_UNKNOWN); }
 	}
 	
  	# Input validation
@@ -446,13 +450,13 @@ MAIN: {
 	# Set exit status
 	my $newExitStatus = 0;
 	my $newStatusMessage = '';
-	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, @temperature, $zmm);
+	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, \@temperature, $zmm);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, @physDevices);
+	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, \@physDevices);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, @logDevices);
+	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, \@logDevices);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
 	given($EXITSTATUS) {

@@ -32,8 +32,7 @@ Physical Device information
       Device #1
          Device is a Hard drive
          State                              : Online
-# Critical
-#         Failed logical device segments     : True
+         Failed logical device segments     : False
          Supported                          : Yes
          Transfer Speed                     : SATA 3.0 Gb/s
          Reported Channel,Device(T:L)       : 0,11(11:0)

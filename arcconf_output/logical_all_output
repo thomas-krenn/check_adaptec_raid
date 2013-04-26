@@ -29,7 +29,7 @@ Logical device number 0
 Logical device number 1
    Logical device name                      : LogicalDrv 1
    RAID level                               : 0
-   Status of logical device                 : Failed
+   Status of logical device                 : Optimal
    Size                                     : 10240 MB
    Stripe-unit size                         : 256 KB
    Read-cache setting                       : Enabled

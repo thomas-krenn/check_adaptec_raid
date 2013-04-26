@@ -1,0 +1,62 @@
+--- check_adaptec_raid	2013-04-26 10:58:07.526815167 +0200
++++ check_adaptec_raid.cat	2013-04-26 11:30:47.238784804 +0200
+@@ -96,7 +96,7 @@
+ 	my $zmm = $_[4];
+ 	my $status = 0; # Return Status
+ 	my $statusMessage = ''; # Return String
+-	my @output = `$sudo $arcconf GETCONFIG $controller AD`; #seems to parse every line in its own variable
++	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/controller_output`; #seems to parse every line in its own variable
+ 	my @linevalues;
+ 	
+ 	foreach my $line (@output) {
+@@ -193,7 +193,7 @@
+     my $status = 0; #Return Status
+     my $statusMessage = ''; # Return String
+     my @faildevices;
+-    my @output = `$sudo $arcconf GETCONFIG $controller PD`;
++    my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/physical_output`;
+     my @linevalues;
+     
+     foreach my $line (@output) {
+@@ -311,7 +311,15 @@
+     my $status = 0; #Return status
+     my $statusMessage = ''; #Return string
+     my @faildevices;
+-    my @output = `$sudo $arcconf GETCONFIG $controller LD`;
++    print "1 all, 2 single";
++    #my $tempinput = <STDIN>;
++    #my @output;
++    #chomp($tempinput);
++    #if ($tempinput eq "1") {
++	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/logical_all_output`;
++    #} else {
++	#@output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/logical_1_output`;
++    #}
+     my @linevalues;
+    
+     foreach my $line (@output) {
+@@ -368,6 +376,7 @@
+ 	
+ 	# Status Output
+     my $faildevicenum = scalar(@faildevices);
++    print $faildevicenum;
+     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
+     	if ($status eq STATE_WARNING) {
+     		$statusMessage = "$faildevicenum log. device(s) failed, ";
+@@ -437,11 +446,11 @@
+ 	}
+ 	
+  	# Input validation
+- 	my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
+- 	if($controllerVersion[1] eq "Invalid controller number.") {
+- 		print "Invalid controller number, device not found!";
+- 		exit(STATE_UNKNOWN);
+- 	}
++ 	#my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
++ 	#if($controllerVersion[1] eq "Invalid controller number.") {
++ 	#	print "Invalid controller number, device not found!";
++ 	#	exit(STATE_UNKNOWN);
++ 	#}
+ 	if(!$zmm =~ /(^[0-1]+)/) {
+  		print "Invalid ZMM parameter, must be 0 or 1!";
+ 		exit(STATE_UNKNOWN);
