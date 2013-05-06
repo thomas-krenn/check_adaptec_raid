@@ -289,11 +289,7 @@ sub getPhysDevCfg {
     # Status output
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
-    	if ($status eq STATE_WARNING) {
-    		$statusMessage .= "$faildevicenum phys. disk(s) failed, ";
-    	} else {
-    		$statusMessage .= "$faildevicenum phys. disk(s) failed, ";
-    	}
+    	$statusMessage .= "$faildevicenum phys. disk(s) failed, ";
     }
 
     return ($status, $statusMessage);
@@ -333,7 +329,7 @@ sub getLogDevCfg {
 
             given($linevalues[0]) {
             
-            	# Main logical device status (Optimal/Failed?)
+            	# Main logical device status
                 when("Status of logical device") {
                     if ($linevalues[1] ne "Optimal") {
                     	if (!grep {$_ eq $devicenum} @faildevices) {
@@ -369,16 +365,11 @@ sub getLogDevCfg {
 	# Status Output
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
-    	if ($status eq STATE_WARNING) {
-    		$statusMessage = "$faildevicenum log. device(s) failed, ";
-    	} else {
-    		$statusMessage = "$faildevicenum log. device(s) failed.";
-    	}
+    	$statusMessage = "$faildevicenum log. device(s) failed, ";
     }
 
     return ($status, $statusMessage);
 }
-
 
 MAIN: {
 	my $controller = 1;
@@ -388,7 +379,7 @@ MAIN: {
 	my $arcconf;
 	my $platform = $^O;
  	my @temperature;
- 	my $zmm = 1; # boolean
+ 	my $zmm = 1;
  	my $statusMessage; # printed status message
 	
 	if ( !(GetOptions(
