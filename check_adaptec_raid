@@ -215,8 +215,10 @@ sub getPhysDevCfg {
             given($linevalues[0]) {
             	# Main disk status (Online/Offline?)
                 when("State") {
-                    if ($linevalues[1] ne "Online") {
-						#check if device is in failed array, else add it
+                    if ($linevalues[1] ne "Online" &&
+                    $linevalues[1] ne "Hot Spare" &&
+                    $linevalues[1] ne "Online (JBOD)") {
+					#check if device is in failed array, else add it
                     	if(!grep {$_ eq $devicenum} @faildevices) {
                     		push(@faildevices, $devicenum);
                     	}
