@@ -281,9 +281,9 @@ sub getPhysDevCfg {
         }
     }
     
-	# Invalid Logical Device Error
+	# Invalid Physical Device Error
     if ( $devicenum eq -1 ) { 
-    	$statusMessage .= "Invalid Log Device, ";
+    	$statusMessage .= "Invalid Phys Device, ";
     	myStatus($status, STATE_UNKNOWN); 
     }
     
@@ -366,7 +366,7 @@ sub getLogDevCfg {
 	# Status Output
     my $faildevicenum = scalar(@faildevices);
     if ($VERBOSITY eq 0 && $faildevicenum > 0) {
-    	$statusMessage = "$faildevicenum log. device(s) failed, ";
+    	$statusMessage .= "$faildevicenum log. device(s) failed, ";
     }
 
     return ($status, $statusMessage);
