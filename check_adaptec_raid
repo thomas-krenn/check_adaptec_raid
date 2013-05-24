@@ -1,10 +1,8 @@
 #!/usr/bin/perl -w
 
-
 use strict;
 use warnings;
 use Getopt::Long qw(:config no_ignore_case);
-use Data::Dumper;
 use Switch 'Perl6';
 
 our $VERBOSITY = 0;
@@ -31,7 +29,6 @@ sub myStatus {
 	
 	return $returnStatus;
 }
-
 
 # Explains the Usage of the plugin, also which options take which values
 sub displayUsage {
@@ -81,6 +78,61 @@ sub displayVersion {
 	}
 }
 
+# Implementation from check_LSI_raid
+# Uses correct Nagios Threshold implementation
+# Nagios development guidelines: temperature threshold sheme
+# http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
+# Returns a temperature range (array) in or out which a temperature should be
+# Array content: ("in" or "out", range from, range to)
+# Example ranges:
+#				Generate an alert if x...
+#	-Tw 10			< 0 or > 10, (outside the range of {0 .. 10})
+#	-Tw 10:			< 10, (outside {10 .. inf})
+#	-Tw ~:10		> 10, (outside the range of {-inf .. 10})
+#	-Tw 10:20		< 10 or > 20, (outside the range of {10 .. 20})
+#	-Tw @10:20		>= 10 and <= 20, (inside the range of {10 .. 20})
+sub getThresholds {
+	my @thresholds = @{($_[0])};
+	my $default = $_[1];
+
+	if(scalar(@thresholds) eq 0) {
+		return @thresholds = ("out", -273, $default);
+	}
+	if(substr($thresholds[0], 0, 1) eq "@") {
+		if($thresholds[0] =~ /^\@([0-9]*)\:([0-9]*)$/) {
+			@thresholds = ("in", $1, $2);
+		} else {
+			print "Invalid temperature parameter!";
+			exit(STATE_UNKNOWN);
+		}
+	} elsif(substr($thresholds[0], 0, 1) eq "~") {
+		if($thresholds[0] =~ /^\~\:([0-9]*)$/) {
+			@thresholds = ("out", -273, $1);
+		} else {
+			print "Invalid temperature parameter!";
+			exit(STATE_UNKNOWN);
+		}
+	} elsif(index($thresholds[0], ":") ne -1) {
+		if($thresholds[0] =~ /^([0-9]*)\:([0-9]{1,3})$/) {
+			@thresholds = ("out", $1, $2);
+		} elsif($thresholds[0] =~ /^([0-9]*)\:$/) {
+			@thresholds = ("in", -273, ($1 - 1));
+		} else {
+			print "Invalid temperature parameter!";
+			exit(STATE_UNKNOWN);
+		}
+	} else {
+		@thresholds = ("out", 0, $thresholds[0]);
+	}
+	if(($thresholds[1] =~ /^(-?[0-9]*)$/) && ($thresholds[2] =~ /^(-?[0-9]*)$/)) {
+		return @thresholds;
+	} else {
+		print "Invalid temperature parameter!";
+		exit(STATE_UNKNOWN);
+	}
+}
+
+
 # Returns Information about the Adaptec RAID-Controller itsself:
 #		- Controller Status
 #		- Defunctional Disks
@@ -91,8 +143,9 @@ sub getControllerCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
-	my @temperature = @{($_[3])};
-	my $zmm = $_[4];
+	my @temperature_w = @{($_[3])};
+	my @temperature_c = @{($_[4])};
+	my $zmm = $_[5];
 	my $status = 0; # Return Status
 	my $statusMessage = ''; # Return String
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`;
@@ -141,22 +194,67 @@ sub getControllerCfg {
 				
 				# Warning if temperature is over the set Threshold 
 				when("Temperature") {
+					my $crit = 0;
 					my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
-					my $warningTemp = $temperature[0];
-					my $criticalTemp = $temperature[1];
-					if ( $controllerTemp > $criticalTemp ) {
-						$status = myStatus($status, STATE_CRITICAL);
-						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
-						if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }	
-						if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $criticalTemp . " C):" . $controllerTemp . " C, "; }
-					} elsif ($controllerTemp > $warningTemp) {
-						$status = myStatus($status, STATE_WARNING);
-						if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
-						if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning: " . $controllerTemp . " C, "; }
-						if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $warningTemp. " C): " . $controllerTemp . " C,"; }
-						if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $warningTemp. ", Critical Threshold: ". $criticalTemp ." C):" . $controllerTemp . " C, "; }
-					}		
+					if ($temperature_w[0] eq "in") {
+						if (($controllerTemp >= $temperature_w[1]) && ($controllerTemp <= $temperature_w[2])) {
+							if ($temperature_c[0] eq "in") {
+								if (($controllerTemp >= $temperature_c[1]) && ($controllerTemp <= $temperature_c[2])) {
+									$crit = 1;
+									$status = myStatus($status, STATE_CRITICAL);
+									if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
+									if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
+									if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }	
+									if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ",". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
+								}
+							} else {
+								if (($controllerTemp < $temperature_c[1]) || ($controllerTemp > $temperature_c[2])) {
+									$crit = 1;
+									$status = myStatus($status, STATE_CRITICAL);
+									if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
+									if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
+									if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }	
+									if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ",". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
+								}
+							}
+							if ($crit eq "0") {
+								$status = myStatus($status, STATE_WARNING);
+								if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
+								if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning: " . $controllerTemp . " C, "; }
+								if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature_w[1] . ", " . $temperature_w[2]. " C): " . $controllerTemp . " C,"; }
+								if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature_w[1] . ", " . $temperature_w[2]. ", Critical Threshold: ". $temperature_c[1] . ", " . $temperature_c[2] ." C):" . $controllerTemp . " C, "; }
+							} 
+						}
+					} else {
+						if (($controllerTemp < $temperature_w[1]) || ($controllerTemp > $temperature_w[2])) {
+							if ($temperature_c[0] eq "in") {
+								if (($controllerTemp >= $temperature_c[1]) && ($controllerTemp <= $temperature_c[2])) {
+									$crit = 1;
+									$status = myStatus($status, STATE_CRITICAL);
+									if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
+									if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
+									if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }	
+									if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ",". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
+								}
+							} else {
+								if (($controllerTemp < $temperature_c[1]) || ($controllerTemp > $temperature_c[2])) {
+									$crit = 1;
+									$status = myStatus($status, STATE_CRITICAL);
+									if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
+									if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
+									if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }	
+									if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ",". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
+								}
+							}
+							if ($crit eq "0") {
+								$status = myStatus($status, STATE_WARNING);
+								if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
+								if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning: " . $controllerTemp . " C, "; }
+								if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature_w[1] . ", " . $temperature_w[2]. " C): " . $controllerTemp . " C,"; }
+								if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature_w[1] . ", " . $temperature_w[2]. ", Critical Threshold: ". $temperature_c[1] . ", " . $temperature_c[2] ." C):" . $controllerTemp . " C, "; }
+							} 
+						}	
+					}
 				}
 				
 				# Zero Maintenance Module
@@ -379,7 +477,8 @@ MAIN: {
 	my $sudo; 
 	my $arcconf;
 	my $platform = $^O;
- 	my @temperature;
+ 	my @temperature_w;
+ 	my @temperature_c;
  	my $zmm = 1;
  	my $statusMessage; # printed status message
 	
@@ -391,8 +490,9 @@ MAIN: {
 		'V|version' => sub {displayVersion($sudo, $arcconf);},
 		'C|controller=i' => \$controller,
 		'LD|logicaldevice=s' => \@logDevices,
-		'PD|physicaldevice=s' => \@physDevices, 
-		'T|temperature=s' => \@temperature,
+		'PD|physicaldevice=s' => \@physDevices,
+		'Tw|temperature-warn=s' => \@temperature_w,
+		'Tc|temperature-crit=s' => \@temperature_c,
 		'p|path=s' => \$arcconf,
 		'z|ZMM=i' => \$zmm
 	)))	{
@@ -401,14 +501,15 @@ MAIN: {
 		exit(STATE_UNKNOWN);
 	}
 	
-	@logDevices = split(/,/,join(',', @logDevices));
-	@physDevices = split(/,/,join(',', @physDevices));
-	if (!@temperature) {
-		@temperature = (50,60);
-	}
-	else{
-		@temperature = split(/,/,join(',', @temperature));
-	}
+#	@logDevices = split(/,/,join(',', @logDevices));
+#	@physDevices = split(/,/,join(',', @physDevices));
+#	if (!@temperature) {
+#		@temperature = (50,60);
+#	}
+#	else{
+#		@temperature = split(/,/,join(',', @temperature));
+#	}
+	@temperature_c = getThresholds(\@temperature_c, 60);
 	
 	# Check platform
 	if ($platform eq 'linux') {
@@ -442,7 +543,7 @@ MAIN: {
 	# Set exit status
 	my $newExitStatus = 0;
 	my $newStatusMessage = '';
-	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, \@temperature, $zmm);
+	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, \@temperature_w, \@temperature_c, $zmm);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
 	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, \@physDevices);
