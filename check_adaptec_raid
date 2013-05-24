@@ -40,8 +40,9 @@ sub displayUsage {
 	print "  [ -V --version ]\n	Displays the Version of the tk-adaptec-plugin and the version of arcconf\n";
 	print "  [ -C <Controller Number> | --controller <Controller Number> ]\n	Specifies a Controller number, (Default 1).\n";
 	print "  [ -LD | --logicaldevice <Log. device number> ]\n	Specifies one or more Logical Devices to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
-	print "  [ -PD | --physicaldevice <Phys. device number> ]\n	Specifies one or more Physical Devies to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
-	print "  [ -T | --temperature <W,C>]\n	Specifies a Warning,Critical temperature(e.g. -T 30,40) for the RAID-Controller.\n	(Default Warning 50 C, Critical 60 C)\n";
+	print "  [ -PD | --physicaldevice <Phys. device number> ]\n	Specifies one or more Physical Devices to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
+	print "  [ -Tw | --temperature-warn ]\n	Specifies the RAID-Controller temperature warning range, default is 50 C or more\n";
+	print "  [ -Tc | --temperature-critical ]\n	Specifies the RAID-Controller temperature critical error range, default is 60 C or more\n";
 	print "  [ -p <path> | --path <path>]\n	Specifies the path to arcconf.\n	Default is /usr/bin/arcconf  C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
 	print "  [ -z <0/1> | ZMM <0/1> ]\n	Boolean Value which specifies if a Zero-Maintenance Module is available\n	(1 is available, 0 is not available). (Default 1)\n	This option is required if you have an Adaptec Raid Controller without a ZMM.\n\n";
 }
@@ -509,6 +510,7 @@ MAIN: {
 #	else{
 #		@temperature = split(/,/,join(',', @temperature));
 #	}
+	@temperature_w = getThresholds(\@temperature_w, 50);
 	@temperature_c = getThresholds(\@temperature_c, 60);
 	
 	# Check platform

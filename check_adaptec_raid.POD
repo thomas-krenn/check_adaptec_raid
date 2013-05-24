@@ -55,6 +55,25 @@ Prints a short help text and quick information where to find additional help.
 
 Prints the Plugin Version and the arcconf version.
 
+=head2 getThresholds
+
+Uses the -Tw --temperature-warn and -Tc --temperature-critical parameters and parses them for getControllerCfg
+
+Uses correct Nagios Threshold implementation: L<http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT>
+
+Returns a temperature range (array) in or out which a temperature should be
+
+Array content: ("in" or "out", range from, range to)
+
+=head3 Examples
+
+Generate an alert if x...
+-Tw 10		< 0 or > 10, (outside the range of {0 .. 10})
+-Tw 10:		< 10, (outside {10 .. inf})
+-Tw ~:10	> 10, (outside the range of {-inf .. 10})
+-Tw 10:20	< 10 or > 20, (outside the range of {10 .. 20})
+-Tw @10:20	>= 10 and <= 20, (inside the range of {10 .. 20})
+
 =head2 getControllerCfg
 
 Checks the Adaptec Raid Controller for Controller Errors. (uses arcconf GETCONFIG 1 AD)
@@ -69,7 +88,7 @@ Checks the Adaptec Raid Controller for Controller Errors. (uses arcconf GETCONFI
 
 - Status of ZMM if present 
 
-The controller temperature can be set to a warning/critical level (parameter: -T|--temperature).
+The controller temperature can be set to a warning (parameter: -Tw|--temperature-warn) and a critical level (parameter: -Tc|--temperature-critical). See getThresholds for more information.
 If no ZMM Module is present the check can be disabled (--zmm 0).
 
 =head2 getPhysDevCfg 
@@ -104,7 +123,7 @@ Franz Nemeth C<< <fnemeth@thomas-krenn.com> >>.
 All rights reserved.
 
 This module is free software; you can redistribute it and/or
-modify it under the same terms as Perl itself. See L<perlartistic>.
+modify it under the same terms as Perl itself. See L<perl artistic>.
 
 =head1 DISCLAIMER OF WARRANTY
 
