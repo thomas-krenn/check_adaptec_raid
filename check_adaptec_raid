@@ -6,7 +6,7 @@ use Getopt::Long qw(:config no_ignore_case);
 
 our $VERBOSITY = 0;
 our $VERSION = '0.1';
-our $NAME = "Thomas-Krenn AG Adaptec Raid Controller Nagios/Icinga Plugin";
+our $NAME = "Thomas-Krenn Adaptec Raid Controller Nagios/Icinga Plugin";
 our $EXITSTATUS = 0;
 use constant {
 	STATE_OK => 0,
@@ -51,15 +51,19 @@ sub displayUsage {
 sub displayHelp {
 	print $NAME . " Version: " . $VERSION ."\n";
 	print "Copyright (C) 2009-2013 Thomas-Krenn.AG\n";
-	print "Current updates available at http://www.thomas-krenn.com/en/oss/<NOT HERE YET!!!!!!>/\n";
+	print "Current updates available via git at:\n  http://git.thomas-krenn.com/check_adaptec_raid.git\n";
 	print "This Nagios/Icinga Plugin checks ADAPTEC RAID-Controllers for Controller, \nPhysical-Device and Logical Device warnings and errors. \n";
-	print "In order for this plugin to work properly you need to add the \nnagios-user to your sudoers file (or create a new one in /etc/sudoers.d/)\n";
+	print "In order for this plugin to work properly you need to add the \nnagios-user to your sudoers file (or create a new one in /etc/sudoers.d/).\n";
+	print "This is required as arcconf must be called with sudo permissions.\n";
 	displayUsage();
-	print "Further information about this plugin can be found at
-http://www.thomas-krenn.com/en/oss/<NOT THERE YET!>
-Send email to the <NOT THERE YET!>-plugin-user mailing list if you have questions regarding
-use of this software, to submit patches, or suggest improvements.
-The mailing list is available at http://lists.thomas-krenn.com/";
+	print "Further information about this plugin can be found at:
+  http://www.thomas-krenn.com/de/wiki/Adaptec_RAID_Monitoring_Plugin and
+  http://www.thomas-krenn.com/de/wiki/Adaptec_RAID_Monitoring_Plugin
+Please send an email to the tk-monitoring plugin-user mailing list:
+  tk-monitoring-plugins-user\@lists.thomas-krenn.com
+if you have questions regarding the use of this software, to submit patches, or
+suggest improvements. The mailing list archive is available at:
+  http://lists.thomas-krenn.com/pipermail/tk-monitoring-plugins-user\n";
 	exit(STATE_UNKNOWN);
 }
 
