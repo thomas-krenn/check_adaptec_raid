@@ -495,14 +495,6 @@ MAIN: {
 		exit(STATE_UNKNOWN);
 	}
 
-#	@logDevices = split(/,/,join(',', @logDevices));
-#	@physDevices = split(/,/,join(',', @physDevices));
-#	if (!@temperature) {
-#		@temperature = (50,60);
-#	}
-#	else{
-#		@temperature = split(/,/,join(',', @temperature));
-#	}
 	@temperature_w = getThresholds(\@temperature_w, 50);
 	@temperature_c = getThresholds(\@temperature_c, 60);
 
