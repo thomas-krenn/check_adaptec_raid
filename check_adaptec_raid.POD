@@ -88,7 +88,9 @@ Checks the Adaptec Raid Controller for Controller Errors. (uses arcconf GETCONFI
 
 - Status of ZMM if present
 
-The controller temperature can be set to a warning (parameter: -Tw|--temperature-warn) and a critical level (parameter: -Tc|--temperature-critical). See getThresholds for more information.
+The controller temperature can be set to a warning (parameter: -Tw|--temperature-warn)
+and a critical level (parameter: -Tc|--temperature-critical).
+See getThresholds for more information.
 If no ZMM Module is present the check can be disabled (--zmm 0).
 
 =head2 getPhysDevCfg
@@ -115,9 +117,10 @@ Returns Information about logical Devices:
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2013,
+Copyright (c) 2013, Thomas-Krenn.AG
 Martin Grubhofer C<< <mgrubhofer@thomas-krenn.com> >>.
 Franz Nemeth C<< <fnemeth@thomas-krenn.com> >>.
+Georg Schoenberger C<< <gschoenberger@thomas-krenn.com> >>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it under

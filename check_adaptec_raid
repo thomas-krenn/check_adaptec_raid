@@ -155,6 +155,12 @@ sub getControllerCfg {
 	my @output = `$sudo $arcconf GETCONFIG $controller AD`;
 	my @linevalues;
 
+	if(!defined($output[0]) || ($output[0] eq "Controllers found: 0\n") ||
+	!defined($output[1]) || ($output[1] eq "Invalid controller number.\n")) {
+		print "Invalid controller number or no controller found!\n";
+		exit(STATE_UNKNOWN);
+	}
+
 	foreach my $line (@output) {
 		if(index($line, ':') != -1) {
 			@linevalues = split(/:/, $line);
