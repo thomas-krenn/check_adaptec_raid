@@ -528,7 +528,7 @@ MAIN: {
 		print "Invalid controller number, device not found!";
 		exit(STATE_UNKNOWN);
 	}
-	if(!$zmm =~ /(^[0-1]+)/) {
+	if($zmm != 1 && $zmm != 0) {
 		print "Invalid ZMM parameter, must be 0 or 1!";
 		exit(STATE_UNKNOWN);
 	}
