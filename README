@@ -3,7 +3,7 @@
 
  check_adaptec_raid: Nagios/Icinga plugin to check Adaptec RAID Controllers
 
- Copyright (C) 2009-2013 Thomas-Krenn.AG
+ Copyright (C) 2013 Thomas-Krenn.AG
 
  This program is free software; you can redistribute it and/or modify it under
  the terms of the GNU General Public License as published by the Free Software
@@ -20,12 +20,15 @@
 
  General:
  --------
-   o The Adaptec RAID Monitoring Plugin is a Nagios/Icinga checks the Adaptec RAID Controller for warnings or critical errors.
-   o It is written in Perl and uses the Arcconf Command Line Utility to interact with the RAID Controller.
+   o The Adaptec RAID Monitoring Plugin is a Nagios/Icinga plugin to check
+     the Adaptec RAID Controller for warnings or critical errors.
+   o It is written in Perl and uses the Arcconf Command Line Utility to interact
+     with the RAID Controller.
 
  Current Version:
  ----------------
-   o The current version of the check_adaptec_raid plugin is available at the Thomas-Krenn.AG git-server:
+   o The current version of the check_adaptec_raid plugin is available at the
+     Thomas Krenn git-server:
    o http://git.thomas-krenn.com/check_adaptec_raid.git
 
  Functionalities:
@@ -40,14 +43,15 @@
    o On the system to be monitored:
      + check_adaptec_raid plugin
      + arcconf
-     + sudoers entry for user nagios and arcconf (example: nagios ALL=(root) NOPASSWD:/sbin/arcconf)
+     + sudoers entry for user nagios and arcconf:
+       (example: nagios ALL=(root) NOPASSWD:/sbin/arcconf)
      + NRPE (optional): command definition
    o On the Icinga-server:
      + command definition
      + service definition
-     + Call-Home-Service (optional): templates (http://www.thomas-krenn.com/de/wiki/Call-Home-Service_mit_Icinga_oder_Nagios_nutzen)
 
  Parameter usage (example):
  --------------------------
    o ./check_adaptec_raid -T 30,40 -C 1 -LD 0,1 -PD 1 -z 0
-   o AACRAID CRITICAL (Ctrl #1): [Ctrl. Status critical, Ctrl. temp. critical, Log. device failed/degraded]
+   o AACRAID CRITICAL (Ctrl #1): [Ctrl. Status critical, Ctrl. temp. critical,
+     Log. device failed/degraded]
