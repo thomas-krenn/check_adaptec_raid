@@ -1,22 +1,22 @@
 =head1 NAME
 
-check_adaptec_raid - nagios/icinga plugin to check adaptec raid controllers
+B<check_adaptec_raid> - Nagios/Icinga Plugin to check Adaptec raid-controllers.
 
 =head1 SYNOPSIS
 
 Example:
 
 	./check_adaptec_raid -T 30,40 -C 1 -LD 0,1 -PD 1 -z 0
-	AACRAID CRITICAL (Ctrl #1): [Ctrl. Status critical, Ctrl. temp. critical, Log. device failed/degraded,]
+	AACRAID CRITICAL (Ctrl #1): [Ctrl. Status critical, Ctrl. temp. critical, Log. device failed/degraded]
 
 =head1 VERSION
 
-This document describes check_adaptec_raid version 0.1
+This document describes check_adaptec_raid version B<0.1>.
 
 =head1 DESCRIPTION
 
-check_adaptec_raid is a Nagios/Icinga Plugin to check Adaptec Raid Controllers for errors/warnings.
-This plugin makes heavy use of 'arcconf' which can be obtained from the Adaptec Homepage.
+check_adaptec_raid is a Nagios/Icinga Plugin to check Adaptec raid-controllers for errors/warnings.
+This plugin makes heavy use of 'arcconf' which can be obtained from the Adaptec homepage.
 It checks the controller, the physical devices and the logical devices seperately for errors or warnings
 (for more detailed information about what is beeing monitored see METHODS).
 
@@ -39,11 +39,11 @@ It checks the controller, the physical devices and the logical devices seperatel
 =head2 myStatus
 
 Sets the correct exit code for each function.
-Can only increment the Exit code (if necessary) since the exit code may not change from Warning to Ok.
+Can only increment the exit code (if necessary) since the exit code may not change from Warning to Ok.
 
 =head2 displayUsage
 
-Explains the Usage of the plugin and which parameters are available.
+Explains the usage of the plugin and which parameters are available.
 
 =head2 displayHelp
 
@@ -51,13 +51,13 @@ Prints a short help text and quick information where to find additional help.
 
 =head2 displayVersion
 
-Prints the Plugin Version and the arcconf version.
+Prints the plugin version and the arcconf version.
 
 =head2 getThresholds
 
 Uses the -Tw --temperature-warn and -Tc --temperature-critical parameters and parses them for getControllerCfg
 
-Uses correct Nagios Threshold implementation: L<http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT>
+Uses correct Nagios threshold implementation: L<http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT>
 
 Returns a temperature range (array) in or out which a temperature should be
 
@@ -74,13 +74,13 @@ Generate an alert if x...
 
 =head2 getControllerCfg
 
-Checks the Adaptec Raid Controller for Controller Errors. (uses arcconf GETCONFIG 1 AD)
+Checks the Adaptec raid-controller for controller errors. (uses arcconf GETCONFIG 1 AD)
 
-- Controller Status
+- Controller status
 
-- Defunctional Disks
+- Defunctional disks
 
-- Logical Devices which have failed/are degraded
+- Logical devices which have failed/are degraded
 
 - Temperature
 
@@ -93,25 +93,25 @@ If no ZMM Module is present the check can be disabled (--zmm 0).
 
 =head2 getPhysDevCfg
 
-Returns Information about physical Devices attached to the Adaptec Raid-Controller:
+Returns information about physical devices attached to the Adaptec raid-controller:
 
-- Disk Status
+- Disk status
 
-- S.M.A.R.T. Status
+- S.M.A.R.T. status
 
-- S.M.A.R.T. Warnings
+- S.M.A.R.T. warnings
 
-- Low-RPM Warnings
+- Low-RPM warnings
 
-- Failed Disk Segments
+- Failed disk segments
 
 =head2 getLogDevCfg
 
-Returns Information about logical Devices:
+Returns information about logical devices:
 
-- General Logical Devices Status
+- General logical devices status
 
-- Failed Stripes
+- Failed stripes
 
 =head1 LICENSE AND COPYRIGHT
 
