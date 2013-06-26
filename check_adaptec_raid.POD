@@ -33,8 +33,6 @@ It checks the controller, the physical devices and the logical devices seperatel
 	use strict;
 	use warnings;
 	use Getopt::Long qw(:config no_ignore_case);
-	use Data::Dumper;
-	use Switch 'Perl6';
 
 =head1 METHODS
 
