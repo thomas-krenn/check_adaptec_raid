@@ -214,7 +214,7 @@ sub getControllerCfg {
 								if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
 								if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
 								if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }
-								if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ",". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
+								if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ".$temperature_c[1]." ,".$temperature_c[2]." C):".$controllerTemp." C, "; }
 							}
 						} else {
 							if (($controllerTemp < $temperature_c[1]) || ($controllerTemp > $temperature_c[2])) {
@@ -223,15 +223,15 @@ sub getControllerCfg {
 								if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
 								if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
 								if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }
-								if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ",". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
+								if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ".$temperature_c[1].", ".$temperature_c[2]." C):".$controllerTemp." C, "; }
 							}
 						}
 						if ($crit eq "0") {
 							$status = myStatus($status, STATE_WARNING);
 							if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
-							if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning: " . $controllerTemp . " C, "; }
-							if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature_w[1] . ", " . $temperature_w[2]. " C): " . $controllerTemp . " C,"; }
-							if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature_w[1] . ", " . $temperature_w[2]. ", Critical Threshold: ". $temperature_c[1] . ", " . $temperature_c[2] ." C):" . $controllerTemp . " C, "; }
+							if ($VERBOSITY == 1) {$statusMessage .= "Temperature Warning: ".$controllerTemp." C, "; }
+							if ($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ".$temperature_w[1].", ".$temperature_w[2]." C): ".$controllerTemp." C,"; }
+							if ($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ".$temperature_w[1].", ".$temperature_w[2].", Critical Threshold: ".$temperature_c[1].", ".$temperature_c[2]." C):".$controllerTemp." C, "; }
 						}
 					}
 				} else {
@@ -243,7 +243,7 @@ sub getControllerCfg {
 								if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
 								if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
 								if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }
-								if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ",". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
+								if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ", ". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
 							}
 						} else {
 							if (($controllerTemp < $temperature_c[1]) || ($controllerTemp > $temperature_c[2])) {
@@ -252,7 +252,7 @@ sub getControllerCfg {
 								if ($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
 								if ($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
 								if ($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }
-								if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ",". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
+								if ($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ", ". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
 							}
 						}
 						if ($crit eq "0") {
