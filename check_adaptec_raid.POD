@@ -6,8 +6,9 @@ B<check_adaptec_raid> - Nagios/Icinga Plugin to check Adaptec raid-controllers.
 
 Example:
 
-	./check_adaptec_raid -T 30,40 -C 1 -LD 0,1 -PD 1 -z 0
-	AACRAID CRITICAL (Ctrl #1): [Ctrl. Status critical, Ctrl. temp. critical, Log. device failed/degraded]
+	./check_adaptec_raid -Tw 70 -Tc 80 -c 1
+	AACRAID CRITICAL (Ctrl #1): [Log. device failed/degraded,
+	Log. device critical, 1 log. device(s) failed]
 
 =head1 VERSION
 
@@ -16,9 +17,9 @@ This document describes check_adaptec_raid version B<0.1>.
 =head1 DESCRIPTION
 
 check_adaptec_raid is a Nagios/Icinga Plugin to check Adaptec raid-controllers for errors/warnings.
-This plugin makes heavy use of 'arcconf' which can be obtained from the Adaptec homepage.
-It checks the controller, the physical devices and the logical devices seperately for errors or warnings
-(for more detailed information about what is beeing monitored see METHODS).
+This plugin makes heavy use of 'arcconf' which can be obtained from the Adaptec website.
+It checks the controller, the physical devices and the logical devices for errors or warnings
+(for more detailed information about what is being monitored see METHODS).
 
 =head1 DEPENDENCIES
 
@@ -39,7 +40,7 @@ It checks the controller, the physical devices and the logical devices seperatel
 =head2 myStatus
 
 Sets the correct exit code for each function.
-Can only increment the exit code (if necessary) since the exit code may not change from Warning to Ok.
+Can only increment the exit code (if necessary) since the exit code may not change from Warning to OK.
 
 =head2 displayUsage
 

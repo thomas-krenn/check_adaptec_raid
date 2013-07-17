@@ -9,12 +9,12 @@
  the terms of the GNU General Public License as published by the Free Software
  Foundation; either version 3 of the License, or (at your option) any later
  version.
- 
+
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
  details.
- 
+
  You should have received a copy of the GNU General Public License along with
  this program; if not, see <http://www.gnu.org/licenses/>.
 
@@ -52,6 +52,6 @@
 
  Parameter usage (example):
  --------------------------
-   o ./check_adaptec_raid -T 30,40 -C 1 -LD 0,1 -PD 1 -z 0
-   o AACRAID CRITICAL (Ctrl #1): [Ctrl. Status critical, Ctrl. temp. critical,
-     Log. device failed/degraded]
+   o ./check_adaptec_raid -Tw 70 -Tc 80 -c 1
+   o AACRAID CRITICAL (Ctrl #1): [Log. device failed/degraded,
+   Log. device critical, 1 log. device(s) failed]
