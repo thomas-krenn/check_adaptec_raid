@@ -294,34 +294,59 @@ sub getPhysDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
-	my @devices = @{($_[3])};
+#	my @devices = @{($_[3])};
+	my $devices = $_[3];
 	my $devicenum = -1;
-	my $status = 0; # Return Status
 	my $statusMessage = ''; # Return String
-	my @faildevices;
 	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/physical_enclosure_output`;
-# COPY FROM HERE
-	my @linevalues;
-
+	my (@faildevices, @linevalues, @devicelist, @userdevicelist);
+	my ($status, $found, $count) = 0; # Return Code, true/false if users devices are found
+	my $i = 0; # helper for arrays
+	
 	foreach my $line (@output) {
-		if($line =~ /(Device #)([0-9]+)/) {
-			if(!defined($devices[0])) {
-				$devicenum = $2;
-			} else {
-				if(grep {$_ eq $2} @devices) {
-					$devicenum = $2;
-				} else {
-					$devicenum = -1;
+		if ($line =~ /Device #([0-9]+)/) {
+			$devicelist[$i] += $1;
+			$i++;
+		}
+	}
+	$i = 0;
+	
+	# Split up the ',' seperated list
+	if (defined($devices)) { 
+		@userdevicelist = split(',', $devices);
+		$count = scalar(@userdevicelist); 
+		foreach my $device (@devicelist) {
+			foreach my $userdevice (@userdevicelist) {
+				if ($device == $userdevice) { 
+					$devicenum = $device; 
+					$found += 1;
 				}
 			}
 		}
+	} else {
+		$count = 1;
+		$found = 1;
+	}
+
+	
+	foreach my $line (@output) {
+		# If users choice could not be found, dont even try
+		if ( $found != $count ) {
+			$devicenum = -1; 
+		}
+		if($line =~ /(Device #)([0-9]+)/) {
+			if(!defined($userdevicelist[0])) {
+				$devicenum = $2;
+			} else {
+				$devicenum = $userdevicelist[$i];
+			}
+		}
+
 		# Check if Disk is a Backplane 
 		if($line =~ /Device is an Enclosure services device/) {
-			#last;
 			$devicenum = -2;
-			# FRAGE Georg: drive enclosure immer als letztes?
-			# villeicht devicenum auf -1 setzen?!
 		}
+		# Linesplitting and removing spaces
 		if($devicenum ne -2 && $devicenum ne -1 && index($line, ':') != -1) {
 			@linevalues = split(/:/, $line);
 			$linevalues[0] =~ s/^\s+|\s+$//g;
@@ -342,7 +367,7 @@ sub getPhysDevCfg {
 						if ($VERBOSITY >= 1) {$statusMessage .= "Disk $devicenum is offline, "; }
 				}
 			}
-# TO HERE
+			
 			# Overall S.M.A.R.T. status
 			elsif($linevalues[0] eq "S.M.A.R.T.") {
 				if ($linevalues[1] ne "No") {
@@ -484,7 +509,7 @@ sub getLogDevCfg {
 MAIN: {
 	my $controller = 1;
 	my @logDevices;
-	my @physDevices;
+	my $physDevices;
 	my $sudo;
 	my $arcconf;
 	my $platform = $^O;
@@ -501,7 +526,7 @@ MAIN: {
 		'V|version' => sub {displayVersion($sudo, $arcconf);},
 		'C|controller=i' => \$controller,
 		'LD|logicaldevice=s' => \@logDevices,
-		'PD|physicaldevice=s' => \@physDevices,
+		'PD|physicaldevice=s' => \$physDevices,
 		'Tw|temperature-warn=s' => \@temperature_w,
 		'Tc|temperature-crit=s' => \@temperature_c,
 		'p|path=s' => \$arcconf,
@@ -550,7 +575,8 @@ MAIN: {
 	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, \@temperature_w, \@temperature_c, $zmm);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, \@physDevices);
+#	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, \@physDevices);
+	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, $physDevices);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
 	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, \@logDevices);
