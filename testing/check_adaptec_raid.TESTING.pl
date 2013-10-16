@@ -327,7 +327,6 @@ sub getPhysDevCfg {
 		$count = 1;
 		$found = 1;
 	}
-
 	
 	foreach my $line (@output) {
 		# If users choice could not be found, dont even try
@@ -338,7 +337,10 @@ sub getPhysDevCfg {
 			if(!defined($userdevicelist[0])) {
 				$devicenum = $2;
 			} else {
-				$devicenum = $userdevicelist[$i];
+				if ( $i < $count) {
+					$devicenum = $userdevicelist[$i];
+					$i++;
+				}
 			}
 		}
 
