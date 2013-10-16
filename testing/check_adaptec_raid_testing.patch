@@ -1,0 +1,74 @@
+--- check_adaptec_raid	2013-10-16 11:00:28.089888016 +0200
++++ check_adaptec_raid.cat	2013-10-16 11:17:55.539877579 +0200
+@@ -70,16 +70,17 @@
+ # Prints the Name, Version of the Plugin
+ # Also Prints the name, version of arcconf and the version of the RAID-Controller
+ sub displayVersion {
+-	my $sudo = $_[0];
+-	my $arcconf = $_[1];
+-	my @arcconfVersion = `$sudo $arcconf`;
+-	print $NAME . "\nVersion: ". $VERSION . "\n\n";
+-	foreach my $line (@arcconfVersion){
+-		if(index($line, "| UCLI |" ) ne "-1") {
+-			$line =~ s/\s+\|.UCLI.\|\s+//g;
+-			print $line. "";
+-		}
+-	}
++#	my $sudo = $_[0];
++#	my $arcconf = $_[1];
++#	my @arcconfVersion = `$sudo $arcconf`;
++#	print $NAME . "\nVersion: ". $VERSION . "\n\n";
++#	foreach my $line (@arcconfVersion){
++#		if(index($line, "| UCLI |" ) ne "-1") {
++#			$line =~ s/\s+\|.UCLI.\|\s+//g;
++#			print $line. "";
++#		}
++#	}
++	print "1.0";
+ }
+ 
+ # Implementation from check_LSI_raid
+@@ -152,7 +153,7 @@
+ 	my $zmm = $_[5];
+ 	my $status = 0; # Return Status
+ 	my $statusMessage = ''; # Return String
+-	my @output = `$sudo $arcconf GETCONFIG $controller AD`;
++	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/controller_output`;
+ 	my @linevalues;
+ 
+ 	if(!defined($output[0]) || ($output[0] eq "Controllers found: 0\n") ||
+@@ -298,7 +299,7 @@
+ 	my $status = 0; # Return Status
+ 	my $statusMessage = ''; # Return String
+ 	my @faildevices;
+-	my @output = `$sudo $arcconf GETCONFIG $controller PD`;
++	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/physical_enclosure_output`;
+ 	my @linevalues;
+ 
+ 	foreach my $line (@output) {
+@@ -415,7 +416,7 @@
+ 	my $status = 0; #Return status
+ 	my $statusMessage = ''; #Return string
+ 	my @faildevices;
+-	my @output = `$sudo $arcconf GETCONFIG $controller LD`;
++	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/logical_all_output`;
+ 	my @linevalues;
+ 
+ 	foreach my $line (@output) {
+@@ -527,11 +528,11 @@
+ 	}
+ 
+ 	# Input validation
+-	my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
+-	if($controllerVersion[1] eq "Invalid controller number.") {
+-		print "Invalid controller number, device not found!";
+-		exit(STATE_UNKNOWN);
+-	}
++	#my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
++	#if($controllerVersion[1] eq "Invalid controller number.") {
++	#	print "Invalid controller number, device not found!";
++	#	exit(STATE_UNKNOWN);
++	#}
+ 	if($zmm != 1 && $zmm != 0) {
+ 		print "Invalid ZMM parameter, must be 0 or 1!";
+ 		exit(STATE_UNKNOWN);

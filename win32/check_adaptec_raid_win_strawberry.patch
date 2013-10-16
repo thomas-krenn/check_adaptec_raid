@@ -1,0 +1,18 @@
+--- check_adaptec_raid	2013-05-24 09:51:02.371749517 +0200
++++ check_adaptec_raid_win	2013-05-31 09:33:27.368473171 +0200
+@@ -3,7 +3,7 @@
+ use strict;
+ use warnings;
+ use Getopt::Long qw(:config no_ignore_case);
+-use Switch 'Perl6';
++use feature "switch";
+ 
+ our $VERBOSITY = 0;
+ our $VERSION = '0.1';
+@@ -560,4 +560,4 @@
+ 		when(2) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newStatusMessage]\n"; }
+ 	}
+ 	exit($EXITSTATUS);
+-}
+\ No newline at end of file
++}

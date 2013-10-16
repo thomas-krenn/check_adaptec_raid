@@ -70,16 +70,17 @@ suggest improvements. The mailing list archive is available at:
 # Prints the Name, Version of the Plugin
 # Also Prints the name, version of arcconf and the version of the RAID-Controller
 sub displayVersion {
-	my $sudo = $_[0];
-	my $arcconf = $_[1];
-	my @arcconfVersion = `$sudo $arcconf`;
-	print $NAME . "\nVersion: ". $VERSION . "\n\n";
-	foreach my $line (@arcconfVersion){
-		if(index($line, "| UCLI |" ) ne "-1") {
-			$line =~ s/\s+\|.UCLI.\|\s+//g;
-			print $line. "";
-		}
-	}
+#	my $sudo = $_[0];
+#	my $arcconf = $_[1];
+#	my @arcconfVersion = `$sudo $arcconf`;
+#	print $NAME . "\nVersion: ". $VERSION . "\n\n";
+#	foreach my $line (@arcconfVersion){
+#		if(index($line, "| UCLI |" ) ne "-1") {
+#			$line =~ s/\s+\|.UCLI.\|\s+//g;
+#			print $line. "";
+#		}
+#	}
+	print "1.0";
 }
 
 # Implementation from check_LSI_raid
@@ -152,7 +153,7 @@ sub getControllerCfg {
 	my $zmm = $_[5];
 	my $status = 0; # Return Status
 	my $statusMessage = ''; # Return String
-	my @output = `$sudo $arcconf GETCONFIG $controller AD`;
+	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/controller_output`;
 	my @linevalues;
 
 	if(!defined($output[0]) || ($output[0] eq "Controllers found: 0\n") ||
@@ -298,7 +299,8 @@ sub getPhysDevCfg {
 	my $status = 0; # Return Status
 	my $statusMessage = ''; # Return String
 	my @faildevices;
-	my @output = `$sudo $arcconf GETCONFIG $controller PD`;
+	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/physical_enclosure_output`;
+# COPY FROM HERE
 	my @linevalues;
 
 	foreach my $line (@output) {
@@ -315,7 +317,10 @@ sub getPhysDevCfg {
 		}
 		# Check if Disk is a Backplane 
 		if($line =~ /Device is an Enclosure services device/) {
+			#last;
 			$devicenum = -2;
+			# FRAGE Georg: drive enclosure immer als letztes?
+			# villeicht devicenum auf -1 setzen?!
 		}
 		if($devicenum ne -2 && $devicenum ne -1 && index($line, ':') != -1) {
 			@linevalues = split(/:/, $line);
@@ -337,6 +342,7 @@ sub getPhysDevCfg {
 						if ($VERBOSITY >= 1) {$statusMessage .= "Disk $devicenum is offline, "; }
 				}
 			}
+# TO HERE
 			# Overall S.M.A.R.T. status
 			elsif($linevalues[0] eq "S.M.A.R.T.") {
 				if ($linevalues[1] ne "No") {
@@ -416,7 +422,7 @@ sub getLogDevCfg {
 	my $status = 0; #Return status
 	my $statusMessage = ''; #Return string
 	my @faildevices;
-	my @output = `$sudo $arcconf GETCONFIG $controller LD`;
+	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/logical_all_output`;
 	my @linevalues;
 
 	foreach my $line (@output) {
@@ -469,7 +475,7 @@ sub getLogDevCfg {
 
 	# Status Output
 	my $faildevicenum = scalar(@faildevices);
-	if ($VERBOSITY >= 0 && $faildevicenum > 0) {
+	if ($VERBOSITY eq 0 && $faildevicenum > 0) {
 		$statusMessage .= "$faildevicenum log. device(s) failed, ";
 	}
 	return ($status, $statusMessage);
@@ -528,11 +534,11 @@ MAIN: {
 	}
 
 	# Input validation
-	my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
-	if($controllerVersion[1] eq "Invalid controller number.") {
-		print "Invalid controller number, device not found!";
-		exit(STATE_UNKNOWN);
-	}
+	#my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
+	#if($controllerVersion[1] eq "Invalid controller number.") {
+	#	print "Invalid controller number, device not found!";
+	#	exit(STATE_UNKNOWN);
+	#}
 	if($zmm != 1 && $zmm != 0) {
 		print "Invalid ZMM parameter, must be 0 or 1!";
 		exit(STATE_UNKNOWN);
