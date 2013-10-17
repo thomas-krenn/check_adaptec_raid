@@ -5,7 +5,7 @@ use warnings;
 use Getopt::Long qw(:config no_ignore_case);
 
 our $VERBOSITY = 0;
-our $VERSION = '0.1';
+our $VERSION = '1.2';
 our $NAME = "Thomas-Krenn Adaptec Raid Controller Nagios/Icinga Plugin";
 our $EXITSTATUS = 0;
 use constant {
@@ -293,30 +293,61 @@ sub getPhysDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
-	my @devices = @{($_[3])};
+	my $devices = $_[3];
 	my $devicenum = -1;
-	my $status = 0; # Return Status
 	my $statusMessage = ''; # Return String
-	my @faildevices;
 	my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-	my @linevalues;
-
+	my (@faildevices, @linevalues, @devicelist);
+	my ($status, $found, $count) = 0; # Return Code, true/false if users devices are found
+	my $i = 0; # helper for arrays
+	my @userdevicelist;
 	foreach my $line (@output) {
-		if($line =~ /(Device #)([0-9]+)/) {
-			if(!defined($devices[0])) {
-				$devicenum = $2;
-			} else {
-				if(grep {$_ eq $2} @devices) {
-					$devicenum = $2;
-				} else {
-					$devicenum = -1;
+		if ($line =~ /Device #([0-9]+)/) {
+			# vorher +=
+			$devicelist[$i] = $1;
+			$i++;
+		}
+	}
+	$i = 0;
+	
+	# Split up the ',' seperated list
+	if (defined($devices)) { 
+		@userdevicelist = split(',', $devices);
+		$count = scalar(@userdevicelist); 
+		foreach my $device (@devicelist) {
+			foreach my $userdevice (@userdevicelist) {
+				if ($device == $userdevice) { 
+					$devicenum = $device; 
+					$found += 1;
 				}
 			}
 		}
+	} else {
+		$count = 1;
+		$found = 1;
+	}
+	
+	foreach my $line (@output) {
+		# If users choice could not be found, dont even try
+		if ( $found != $count ) {
+			$devicenum = -1; 
+		}
+		if($line =~ /(Device #)([0-9]+)/) {
+			if(!defined($userdevicelist[0])) {
+				$devicenum = $2;
+			} else {
+				if ( $i < $count) {
+					$devicenum = $userdevicelist[$i];
+					$i++;
+				}
+			}
+		}
+
 		# Check if Disk is a Backplane 
 		if($line =~ /Device is an Enclosure services device/) {
 			$devicenum = -2;
 		}
+		# Linesplitting and removing spaces
 		if($devicenum ne -2 && $devicenum ne -1 && index($line, ':') != -1) {
 			@linevalues = split(/:/, $line);
 			$linevalues[0] =~ s/^\s+|\s+$//g;
@@ -337,6 +368,7 @@ sub getPhysDevCfg {
 						if ($VERBOSITY >= 1) {$statusMessage .= "Disk $devicenum is offline, "; }
 				}
 			}
+			
 			# Overall S.M.A.R.T. status
 			elsif($linevalues[0] eq "S.M.A.R.T.") {
 				if ($linevalues[1] ne "No") {
@@ -411,23 +443,56 @@ sub getLogDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
-	my @devices = @{($_[3])};
+	my $devices = $_[3];
 	my $devicenum = -1;
 	my $status = 0; #Return status
 	my $statusMessage = ''; #Return string
 	my @faildevices;
 	my @output = `$sudo $arcconf GETCONFIG $controller LD`;
 	my @linevalues;
+	my $i = 0;
+	my $count = 0;
+	my $found = 0;
+	my @loglist;
+	my @userloglist;
+
 
 	foreach my $line (@output) {
 		if($line =~ /(Logical device number )([0-9]+)/) {
-			if(!defined($devices[0])) {
-				$devicenum = $2;
+		$loglist[$i] = $2;
+		$i++;
+		}
+		
+	} 
+	$i = 0;
+
+	if (defined($devices)) {
+		@userloglist = split(',', $devices);
+		$count = scalar(@userloglist);
+		foreach my $logdev (@loglist) {
+			foreach my $userlogdev (@userloglist) {
+				if ($logdev == $userlogdev) {
+					$devicenum = $logdev;
+					$found += 1;
+				}
+			}
+		}
+	} else {
+		$count = 1;
+		$found = 1;
+	}
+
+	foreach my $line (@output) {
+		if ($found != $count) {
+			$devicenum = -1;
+		}
+		if($line =~ /Logical device number ([0-9]+)/) {
+			if (!defined($userloglist[0])) {
+				$devicenum = $1;
 			} else {
-				if(grep {$_ eq $2} @devices) {
-					$devicenum = $2;
-				} else {
-					$devicenum = -1;
+				if ( $i < $count) {
+					$devicenum = $userloglist[$i];
+					$i++;
 				}
 			}
 		}
@@ -469,7 +534,7 @@ sub getLogDevCfg {
 
 	# Status Output
 	my $faildevicenum = scalar(@faildevices);
-	if ($VERBOSITY >= 0 && $faildevicenum > 0) {
+	if ($VERBOSITY eq 0 && $faildevicenum > 0) {
 		$statusMessage .= "$faildevicenum log. device(s) failed, ";
 	}
 	return ($status, $statusMessage);
@@ -477,8 +542,8 @@ sub getLogDevCfg {
 
 MAIN: {
 	my $controller = 1;
-	my @logDevices;
-	my @physDevices;
+	my $logDevices;
+	my $physDevices;
 	my $sudo;
 	my $arcconf;
 	my $platform = $^O;
@@ -494,8 +559,8 @@ MAIN: {
 		'h|help' => sub {displayHelp();},
 		'V|version' => sub {displayVersion($sudo, $arcconf);},
 		'C|controller=i' => \$controller,
-		'LD|logicaldevice=s' => \@logDevices,
-		'PD|physicaldevice=s' => \@physDevices,
+		'LD|logicaldevice=s' => \$logDevices,
+		'PD|physicaldevice=s' => \$physDevices,
 		'Tw|temperature-warn=s' => \@temperature_w,
 		'Tc|temperature-crit=s' => \@temperature_c,
 		'p|path=s' => \$arcconf,
@@ -544,10 +609,10 @@ MAIN: {
 	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, \@temperature_w, \@temperature_c, $zmm);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, \@physDevices);
+	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, $physDevices);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, \@logDevices);
+	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, $logDevices);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
 	if($EXITSTATUS == 0) { print "AACRAID OK (Ctrl #$controller)\n"; }
