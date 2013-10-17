@@ -294,18 +294,19 @@ sub getPhysDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
-#	my @devices = @{($_[3])};
 	my $devices = $_[3];
 	my $devicenum = -1;
 	my $statusMessage = ''; # Return String
 	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/physical_enclosure_output`;
-	my (@faildevices, @linevalues, @devicelist, @userdevicelist);
+	my (@faildevices, @linevalues, @devicelist);
 	my ($status, $found, $count) = 0; # Return Code, true/false if users devices are found
 	my $i = 0; # helper for arrays
+	my @userdevicelist;
 	
 	foreach my $line (@output) {
 		if ($line =~ /Device #([0-9]+)/) {
-			$devicelist[$i] += $1;
+			# vorher +=
+			$devicelist[$i] = $1;
 			$i++;
 		}
 	}
@@ -444,23 +445,55 @@ sub getLogDevCfg {
 	my $sudo = $_[0];
 	my $arcconf = $_[1];
 	my $controller = $_[2];
-	my @devices = @{($_[3])};
+	my $devices = $_[3];
 	my $devicenum = -1;
 	my $status = 0; #Return status
 	my $statusMessage = ''; #Return string
 	my @faildevices;
 	my @output = `/bin/cat /home/fnemeth/git/check_adaptec_raid/arcconf_output/logical_all_output`;
 	my @linevalues;
+	my $i = 0;
+	my $count = 0;
+	my $found = 0;
+	my @loglist;
+	my @userloglist;
 
 	foreach my $line (@output) {
 		if($line =~ /(Logical device number )([0-9]+)/) {
-			if(!defined($devices[0])) {
-				$devicenum = $2;
+		$loglist[$i] = $2;
+		$i++;
+		}
+		
+	} 
+	$i = 0;
+
+	if (defined($devices)) {
+		@userloglist = split(',', $devices);
+		$count = scalar(@userloglist);
+		foreach my $logdev (@loglist) {
+			foreach my $userlogdev (@userloglist) {
+				if ($logdev == $userlogdev) {
+					$devicenum = $logdev;
+					$found += 1;
+				}
+			}
+		}
+	} else {
+		$count = 1;
+		$found = 1;
+	}
+
+	foreach my $line (@output) {
+		if ($found != $count) {
+			$devicenum = -1;
+		}
+		if($line =~ /Logical device number ([0-9]+)/) {
+			if (!defined($userloglist[0])) {
+				$devicenum = $1;
 			} else {
-				if(grep {$_ eq $2} @devices) {
-					$devicenum = $2;
-				} else {
-					$devicenum = -1;
+				if ( $i < $count) {
+					$devicenum = $userloglist[$i];
+					$i++;
 				}
 			}
 		}
@@ -510,7 +543,7 @@ sub getLogDevCfg {
 
 MAIN: {
 	my $controller = 1;
-	my @logDevices;
+	my $logDevices;
 	my $physDevices;
 	my $sudo;
 	my $arcconf;
@@ -527,7 +560,7 @@ MAIN: {
 		'h|help' => sub {displayHelp();},
 		'V|version' => sub {displayVersion($sudo, $arcconf);},
 		'C|controller=i' => \$controller,
-		'LD|logicaldevice=s' => \@logDevices,
+		'LD|logicaldevice=s' => \$logDevices,
 		'PD|physicaldevice=s' => \$physDevices,
 		'Tw|temperature-warn=s' => \@temperature_w,
 		'Tc|temperature-crit=s' => \@temperature_c,
@@ -581,7 +614,8 @@ MAIN: {
 	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, $physDevices);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, \@logDevices);
+#	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, \@logDevices);
+	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, $logDevices);
 	$newStatusMessage .= $statusMessage;
 	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
 	if($EXITSTATUS == 0) { print "AACRAID OK (Ctrl #$controller)\n"; }
