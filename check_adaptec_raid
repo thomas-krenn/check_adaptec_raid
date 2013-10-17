@@ -204,6 +204,8 @@ sub getControllerCfg {
 			# Warning if temperature is over the set Threshold
 			elsif($linevalues[0] eq "Temperature") {
 				my $crit = 0;
+				if (!@temperature_c) { $temperature_c[1] = 'not set'; $temperature_c[2] = 'not set' }
+				if (!@temperature_w) { $temperature_w[1] = 'not set'; $temperature_w[2] = 'not set' }
 				my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
 				if ($temperature_w[0] eq "in") {
 					if (($controllerTemp >= $temperature_w[1]) && ($controllerTemp <= $temperature_w[2])) {
@@ -329,7 +331,7 @@ sub getPhysDevCfg {
 	
 	foreach my $line (@output) {
 		# If users choice could not be found, dont even try
-		if ( $found != $count ) {
+		if ( $found ne $count ) {
 			$devicenum = -1; 
 		}
 		if($line =~ /(Device #)([0-9]+)/) {
@@ -483,7 +485,7 @@ sub getLogDevCfg {
 	}
 
 	foreach my $line (@output) {
-		if ($found != $count) {
+		if ($found ne $count) {
 			$devicenum = -1;
 		}
 		if($line =~ /Logical device number ([0-9]+)/) {
@@ -571,14 +573,14 @@ MAIN: {
 		exit(STATE_UNKNOWN);
 	}
 
-	@temperature_w = getThresholds(\@temperature_w, 50);
-	@temperature_c = getThresholds(\@temperature_c, 60);
+	if (@temperature_w) { @temperature_w = getThresholds(\@temperature_w, 70); }
+	if (@temperature_c) { @temperature_c = getThresholds(\@temperature_c, 75); }
 
 	# Check platform
 	if ($platform eq 'linux') {
 		$sudo = '/usr/bin/sudo';
 		if (!$arcconf) {
-			$arcconf = '/usr/bin/arcconf';
+			$arcconf = '/usr/StorMan/arcconf';
 		}
 		unless ( -e $arcconf && -x $sudo ) {
 			print "Permission denied or file not found!\n";
