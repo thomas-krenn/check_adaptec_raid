@@ -100,7 +100,7 @@ sub getThresholds {
 	my $default = $_[1];
 
 	if(scalar(@thresholds) eq 0) {
-		return @thresholds = ("out", -273, $default);
+		return @thresholds = ("out", 0, $default);
 	}
 	if(substr($thresholds[0], 0, 1) eq "@") {
 		if($thresholds[0] =~ /^\@([0-9]*)\:([0-9]*)$/) {
@@ -111,7 +111,7 @@ sub getThresholds {
 		}
 	} elsif(substr($thresholds[0], 0, 1) eq "~") {
 		if($thresholds[0] =~ /^\~\:([0-9]*)$/) {
-			@thresholds = ("out", -273, $1);
+			@thresholds = ("out", 0, $1);
 		} else {
 			print "Invalid temperature parameter!";
 			exit(STATE_UNKNOWN);
@@ -120,7 +120,7 @@ sub getThresholds {
 		if($thresholds[0] =~ /^([0-9]*)\:([0-9]{1,3})$/) {
 			@thresholds = ("out", $1, $2);
 		} elsif($thresholds[0] =~ /^([0-9]*)\:$/) {
-			@thresholds = ("in", -273, ($1 - 1));
+			@thresholds = ("in", 0, ($1 - 1));
 		} else {
 			print "Invalid temperature parameter!";
 			exit(STATE_UNKNOWN);
@@ -204,8 +204,8 @@ sub getControllerCfg {
 			# Warning if temperature is over the set Threshold
 			elsif($linevalues[0] eq "Temperature") {
 				my $crit = 0;
-				if (!@temperature_c) { $temperature_c[1] = 'not set'; $temperature_c[2] = 'not set' }
-				if (!@temperature_w) { $temperature_w[1] = 'not set'; $temperature_w[2] = 'not set' }
+				if (!@temperature_c) { $temperature_c[1] = '0'; $temperature_c[2] = '0' }
+				if (!@temperature_w) { $temperature_w[1] = '0'; $temperature_w[2] = '0' }
 				my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
 				if ($temperature_w[0] eq "in") {
 					if (($controllerTemp >= $temperature_w[1]) && ($controllerTemp <= $temperature_w[2])) {
@@ -572,9 +572,9 @@ MAIN: {
 		displayUsage();
 		exit(STATE_UNKNOWN);
 	}
-
-	if (@temperature_w) { @temperature_w = getThresholds(\@temperature_w, 70); }
-	if (@temperature_c) { @temperature_c = getThresholds(\@temperature_c, 75); }
+	
+	@temperature_w = getThresholds(\@temperature_w, 70);
+	@temperature_c = getThresholds(\@temperature_c, 75);
 
 	# Check platform
 	if ($platform eq 'linux') {
