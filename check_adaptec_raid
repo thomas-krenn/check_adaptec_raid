@@ -47,7 +47,6 @@ sub displayUsage {
 }
 
 # Displays a short Help text for the user
-# TODO: ADD URL and Mailing List
 sub displayHelp {
 	print $NAME . " Version: " . $VERSION ."\n";
 	print "Copyright (C) 2009-2013 Thomas-Krenn.AG\n";
