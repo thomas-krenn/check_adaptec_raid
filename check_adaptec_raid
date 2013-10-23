@@ -5,7 +5,7 @@ use warnings;
 use Getopt::Long qw(:config no_ignore_case);
 
 our $VERBOSITY = 0;
-our $VERSION = '1.2';
+our $VERSION = '1.0';
 our $NAME = "Thomas-Krenn Adaptec Raid Controller Nagios/Icinga Plugin";
 our $EXITSTATUS = 0;
 use constant {
