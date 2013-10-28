@@ -495,10 +495,6 @@ MAIN: {
 		displayUsage();
 		exit(STATE_UNKNOWN);
 	}
-	
-	@temperature_w = getThresholds(\@temperature_w, 70);
-	@temperature_c = getThresholds(\@temperature_c, 75);
-
 	# Check platform
 	if($platform eq 'linux') {
 		$sudo = '/usr/bin/sudo';
@@ -516,7 +512,15 @@ MAIN: {
 		}
 		unless ( -e $arcconf ) { print "Executable not found!\n"; exit(STATE_UNKNOWN); }
 	}
-
+	# check given thresholds
+	if(@temperature_c && !@temperature_w){
+		print "Please also specify warning threshold!\n";
+		displayUsage();
+		exit(STATE_UNKNOWN);
+	}
+	@temperature_w = getThresholds(\@temperature_w, 70);
+	@temperature_c = getThresholds(\@temperature_c, 75);
+	
 	# Input validation
 	my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
 	if($controllerVersion[1] eq "Invalid controller number.") {
