@@ -1,0 +1,13 @@
+###############################################################################
+Changelog for check_adaptec_raid, a Nagios/Icinga plugin to check Adaptec RAID
+controllers
+###############################################################################
+
+Version 1.0 20131028
+  * First stable release. Improved testing with reading output from simple text
+    files.
+  * Fix problem where only the first physical device in the users pecified list
+    (-PD) would be checked.
+  * Correctly set up check for user defined logical devices
+  * Fix value of threshold not set from -273 to 0
+  * Skip drive enclosure service devices
