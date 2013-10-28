@@ -40,8 +40,8 @@ sub displayUsage {
 	print "  [ -C <Controller Number> | --controller <Controller Number> ]\n	Specifies a Controller number, (Default 1).\n";
 	print "  [ -LD | --logicaldevice <Log. device number> ]\n	Specifies one or more Logical Devices to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
 	print "  [ -PD | --physicaldevice <Phys. device number> ]\n	Specifies one or more Physical Devices to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
-	print "  [ -Tw | --temperature-warn ]\n	Specifies the RAID-Controller temperature warning range, default is 50 C or more\n";
-	print "  [ -Tc | --temperature-critical ]\n	Specifies the RAID-Controller temperature critical error range, default is 60 C or more\n";
+	print "  [ -Tw | --temperature-warn ]\n	Specifies the RAID-Controller temperature warning range, default is 70 C or more\nRequires Temperature Critical [-Tc|--temperature-critical]";
+	print "  [ -Tc | --temperature-critical ]\n	Specifies the RAID-Controller temperature critical error range, default is 75 C or more\nRequires Temperature Critical [-Tc|--temperature-critical]";
 	print "  [ -p <path> | --path <path>]\n	Specifies the path to arcconf.\n	Default is /usr/bin/arcconf  C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
 	print "  [ -z <0/1> | ZMM <0/1> ]\n	Boolean Value which specifies if a Zero-Maintenance Module is available\n	(1 is available, 0 is not available). (Default 1)\n	This option is required if you have an Adaptec Raid Controller without a ZMM.\n\n";
 }
@@ -79,6 +79,7 @@ sub displayVersion {
 			print $line. "";
 		}
 	}
+	exit(STATE_UNKNOWN);
 }
 
 # Implementation from check_LSI_raid
@@ -348,10 +349,10 @@ sub getPhysDevCfg {
 				$status = myStatus($status, STATE_WARNING);
 				if($VERBOSITY == 0) {$statusMessage .= "S.M.A.R.T. warning, "; }
 				if($VERBOSITY == 1) {$statusMessage .= "Disk $deviceToCheck: S.M.A.R.T. warnings, "; }
-				if($VERBOSITY >= 2) {$statusMessage .= "Disk $deviceToCheck: \nDisk has one or more S.M.A.R.T. warnings, "; }
+				if($VERBOSITY >= 2) {$statusMessage .= "Disk $deviceToCheck: Disk has one or more S.M.A.R.T. warnings, "; }
 			}
 			# Check if the disk does not run with full (physical) speed
-			elsif(($linevalues[0] eq "Power state") && ($linevalues[1] ne "Full rpm")){
+			elsif(($linevalues[0] eq "Power State") && ($linevalues[1] ne "Full rpm")){
 				if(!grep {$_ eq $deviceToCheck} @faildevices) {
 					push(@faildevices, $deviceToCheck);
 				}
@@ -361,7 +362,7 @@ sub getPhysDevCfg {
 				if($VERBOSITY >= 2) {$statusMessage .= "Disk $deviceToCheck: \nDisk run in a different power state (not full rpm), "; }
 			}
 			# Look for bad device segments
-			elsif(($linevalues[0] eq "Failed logical device segments") && ($linevalues[1] eq "True")){
+			elsif(($linevalues[0] eq "Failed logical device segments") && ($linevalues[1] ne "False")){
 				if(!grep {$_ eq $deviceToCheck} @faildevices) {
 					push(@faildevices, $deviceToCheck);
 				}
@@ -413,6 +414,7 @@ sub getLogDevCfg {
 	foreach my $line (@output) {
 		if($line =~ /(Logical device number )([0-9]+)/) {
 			$ldToCheck = $2;
+			$devicenum = $2;
 			$ldChecked++;
 		}
 		
@@ -457,7 +459,7 @@ sub getLogDevCfg {
 	}
 	# Status Output
 	my $faildevicenum = scalar(@faildevices);
-	if($VERBOSITY eq 0 && $faildevicenum > 0) {
+	if($VERBOSITY >= 0 && $faildevicenum > 0) {
 		$statusMessage .= "$faildevicenum log. device(s) failed, ";
 	}
 	return ($status, $statusMessage);
