@@ -32,7 +32,7 @@ our $C_TEMP_WARNING = 80;
 our $C_TEMP_CRITICAL = 90;
 our $PD_TEMP_WARNING = 40;
 our $PD_TEMP_CRITICAL = 45;
-our $CONTROLLER = 0;
+our $CONTROLLER = 1;
 our $EXITSTATUS = 0;
 
 use constant {
@@ -104,6 +104,22 @@ sub displayVersion {
 		print grep /Version/, @arcconfVersion;
 	}
 	exit(STATE_OK);
+}
+
+# Checks if an arcconf call was successfull, i.e. if the return code is 0
+# and 'invalid' is not present in the second line
+# @param output The output of the arcconf command as array
+# @param returnCode The return code of the arcconf call
+# @return 1 on success, 0 if not
+sub checkCommandStatus{
+	my @output = @{(shift)};
+	my $returnCode = shift;
+	if(($output[1] =~ /^Invalid/) || (($returnCode >> 8) != 0)){
+		return 0;
+	}
+	else{
+		return 1;
+	}
 }
 
 # Implementation from check_LSI_raid
