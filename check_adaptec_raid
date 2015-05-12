@@ -122,6 +122,16 @@ sub checkCommandStatus{
 	}
 }
 
+# Shows the version information about a controller. Can be used to check if the
+# controller number is a correct one.
+# @param arcconf The path to arcconf command utility
+# @return 1 on success, 0 if not
+sub getControllerVersion{
+	my $arcconf = shift;
+	my @output = `$arcconf GETVERSION $CONTROLLER`;
+	return (checkCommandStatus(\@output, $?));
+}
+
 # Implementation from check_LSI_raid
 # Uses correct Nagios Threshold implementation
 # Nagios development guidelines: temperature threshold sheme
