@@ -94,20 +94,16 @@ suggest improvements. The mailing list archive is available at:
 	exit(STATE_UNKNOWN);
 }
 
-# Prints the Name, Version of the Plugin
-# Also Prints the name, version of arcconf and the version of the RAID-Controller
+# Prints the name and the version of check_adaptec_raid. If arcconf is
+# available, the version of it is printed also.
+# @param arcconf The path to arcconf command utility
 sub displayVersion {
-	my $sudo = $_[0];
-	my $arcconf = $_[1];
-	my @arcconfVersion = `$sudo $arcconf`;
-	print $NAME . "\nVersion: ". $VERSION . "\n\n";
-	foreach my $line (@arcconfVersion) {
-		if(index($line, "| UCLI |" ) ne "-1") {
-			$line =~ s/\s+\|.UCLI.\|\s+//g;
-			print $line. "";
-		}
+	my $arcconf = shift;
+	if(defined($arcconf)){
+		my @arcconfVersion = `$arcconf`;
+		print grep /Version/, @arcconfVersion;
 	}
-	exit(STATE_UNKNOWN);
+	exit(STATE_OK);
 }
 
 # Implementation from check_LSI_raid
@@ -498,7 +494,7 @@ MAIN: {
 	my $logDevices;
 	my $physDevices;
 	my $sudo;
-	my $arcconf;
+	my $arcconf = '/sbin/arcconf';
 	my $platform = $^O;
 	my @temperature_w;
 	my @temperature_c;
@@ -510,7 +506,7 @@ MAIN: {
 		'vv' => sub { $VERBOSITY = 2 },
 		'vvv' => sub { $VERBOSITY = 3 },
 		'h|help' => sub {displayHelp();},
-		'V|version' => sub {displayVersion($sudo, $arcconf);},
+		'V|version' => sub {displayVersion($arcconf);},
 		'C|controller=i' => \$controller,
 		'LD|logicaldevice=s' => \$logDevices,
 		'PD|physicaldevice=s' => \$physDevices,
