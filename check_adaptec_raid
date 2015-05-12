@@ -635,6 +635,47 @@ sub checkZMMPresent{
 	else{ return 1; }
 }
 
+# Checks if a given value is in a specified range, the range must follow the
+# nagios development guidelines:
+# http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT
+# @param value The given value to check the pattern for
+# @param pattern The pattern specifying the threshold range, e.g. '10:', '@10:20'
+# @return 0 if the value is outside the range, 1 if the value satisfies the range
+sub checkThreshs{
+	my $value = shift;
+	my $pattern = shift;
+	if($pattern =~ /(^[0-9]+$)/){
+		if($value < 0 || $value > $1){
+			return 0;
+		}
+	}
+	elsif($pattern =~ /(^[0-9]+)\:$/){
+		if($value < $1){
+			return 0;
+		}
+	}
+	elsif($pattern =~ /^\~\:([0-9]+)$/){
+		if($value > $1){
+			return 0;
+		}
+	}
+	elsif($pattern =~ /^([0-9]+)\:([0-9]+)$/){
+		if($value < $1 || $value > $2){
+			return 0;
+		}
+	}
+	elsif($pattern =~ /^\@([0-9]+)\:([0-9]+)$/){
+		if($value >= $1 and $value <= $2){
+			return 0;
+		}
+	}
+	else{
+		print "Invalid temperature parameter! ($pattern)\n";
+		exit(STATE_UNKNOWN);
+	}
+	return 1;
+}
+
 MAIN: {
 	my ($arcconf, $sudo, $noSudo, $version, $exitCode);
 	# Create default sensor arrays and push them to status level
