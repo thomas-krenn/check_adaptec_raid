@@ -177,138 +177,69 @@ sub getControllerInfo{
 	return \%foundController_h;
 }
 
-# Returns Information about the Adaptec RAID-Controller itsself:
-#		- Controller Status
-#		- Defunctional Disks
-#		- Logical Devices which have failed/are degraded
-#		- Temperature
-# 		- Status of ZMM if present
-sub getControllerCfg {
-	my $sudo = $_[0];
-	my $arcconf = $_[1];
-	my $controller = $_[2];
-	my @temperature_w = @{($_[3])};
-	my @temperature_c = @{($_[4])};
-	my $zmm = $_[5];
-	my $status = 0; # Return Status
-	my $statusMessage = ''; # Return String
-	my @output = `$sudo $arcconf GETCONFIG $controller AD`;
-	my @linevalues;
-
-	if(!defined($output[0]) || ($output[0] eq "Controllers found: 0\n") ||
-	!defined($output[1]) || ($output[1] eq "Invalid controller number.\n")) {
-		print "Invalid controller number or no controller found!\n";
-		exit(STATE_UNKNOWN);
-	}
-
-	foreach my $line (@output) {
-		if(index($line, ':') != -1) {
-			@linevalues = split(/:/, $line);
-			$linevalues[0] =~ s/^\s+|\s+$//g;
-			$linevalues[1] =~ s/^\s+|\s+$//g;
-
-			# Overall Controller Status
-			if(($linevalues[0] eq "Controller Status") && ($linevalues[1] ne "Optimal")) {
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "Ctrl. Status critical, "; }
-				if($VERBOSITY == 1) {$statusMessage .= "Controller Status is critical, "; }
-				if($VERBOSITY >= 2) {$statusMessage .= "The Controller Status is not running Optimal, "; }
-			}
-			# Defunctional disks
-			if(($linevalues[0] eq "Defunct disk drive count") && ($linevalues[1] ne "0")) {
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "Defunct. disks, "; }
-				if($VERBOSITY >= 1) {$statusMessage .= $linevalues[1] . " disks are defunctional, "; }
-			}
-
-			# Logical Devices total/failed/degraded
-			# Warning since the raid is still recoverable, if it isnt you wont need a nagios plugin to notice that!
-			if($linevalues[0] eq "Logical devices/Failed/Degraded") {
-				$linevalues[1] =~ /([0-9]+)\/([0-9]+)\/([0-9]+)/;
-				my $totalDisks = $1;
-				my $totalFailed = $2;
-				my $totalDegraded = $3;
-				if($totalFailed ne '0' || $totalDegraded ne '0') {
-					$status = myStatus($status, STATE_WARNING);
-					if($VERBOSITY == 0) {$statusMessage .= "Log. device failed/degraded, "; }
-					if($VERBOSITY == 1) {$statusMessage .= "Logical devices have failed or are degraded, "; }
-					if($VERBOSITY == 2) {$statusMessage .= "Disks have failed or the Raid is degraded, "; }
-					if($VERBOSITY == 3) {$statusMessage .= "Disks have failed or the Raid is degraded: (Total Disks: ". $totalDisks . ", Failed: " . $totalFailed . ", Degraded: " . $totalDegraded . "), "; }
+# Checks the status of the raid controller
+# @param statusLevel_a The status level array, elem 0 is the current status,
+# elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
+# information for the sensors.
+# @param foundController The hash of controller infos, created by getControllerInfo
+sub getControllerStatus{
+	my @statusLevel_a = @{(shift)};
+	my %foundController = %{(shift)};
+	my $status;
+	foreach my $key (%foundController){
+		if($key eq 'Temperature'){
+			$foundController{$key} =~ /^([0-9]+\.?[0-9]+) C/;
+			if(defined($1)){
+				if(!(checkThreshs($1, $C_TEMP_CRITICAL))){
+					$status = 'Critical';
+					push @{$statusLevel_a[2]}, 'CTR_Temperature';
 				}
-			}
-
-			# Warning if temperature is over the set Threshold
-			if($linevalues[0] eq "Temperature") {
-				my $crit = 0;
-				if(!@temperature_c) { $temperature_c[1] = '0'; $temperature_c[2] = '0' }
-				if(!@temperature_w) { $temperature_w[1] = '0'; $temperature_w[2] = '0' }
-				my ($controllerTemp) = $linevalues[1] =~ /(^[0-9]+)/;
-				if($temperature_w[0] eq "in") {
-					if(($controllerTemp >= $temperature_w[1]) && ($controllerTemp <= $temperature_w[2])) {
-						if(($temperature_c[0] eq "in") && ($controllerTemp >= $temperature_c[1]) && ($controllerTemp <= $temperature_c[2])) {
-							$crit = 1;
-							$status = myStatus($status, STATE_CRITICAL);
-							if($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
-							if($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
-							if($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }
-							if($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ".$temperature_c[1]." ,".$temperature_c[2]." C):".$controllerTemp." C, "; }
-						} elsif(($controllerTemp < $temperature_c[1]) || ($controllerTemp > $temperature_c[2])) {
-							$crit = 1;
-							$status = myStatus($status, STATE_CRITICAL);
-							if($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
-							if($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
-							if($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }
-							if($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ".$temperature_c[1].", ".$temperature_c[2]." C):".$controllerTemp." C, "; }
-						}
-						if($crit eq "0") {
-							$status = myStatus($status, STATE_WARNING);
-							if($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
-							if($VERBOSITY == 1) {$statusMessage .= "Temperature Warning: ".$controllerTemp." C, "; }
-							if($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ".$temperature_w[1].", ".$temperature_w[2]." C): ".$controllerTemp." C,"; }
-							if($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ".$temperature_w[1].", ".$temperature_w[2].", Critical Threshold: ".$temperature_c[1].", ".$temperature_c[2]." C):".$controllerTemp." C, "; }
-						}
-					}
-				} else {
-					if(($controllerTemp < $temperature_w[1]) || ($controllerTemp > $temperature_w[2])) {
-						if(($temperature_c[0] eq "in") && ($controllerTemp >= $temperature_c[1]) && ($controllerTemp <= $temperature_c[2])){
-							$crit = 1;
-							$status = myStatus($status, STATE_CRITICAL);
-							if($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
-							if($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
-							if($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }
-							if($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ", ". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
-
-						} else {
-							if(($controllerTemp < $temperature_c[1]) || ($controllerTemp > $temperature_c[2])) {
-								$crit = 1;
-								$status = myStatus($status, STATE_CRITICAL);
-								if($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. critical, "; }
-								if($VERBOSITY == 1) {$statusMessage .= "Temperature critical: " . $controllerTemp . " C, "; }
-								if($VERBOSITY == 2) {$statusMessage .= "Temperature critical: ". $controllerTemp . " C, "; }
-								if($VERBOSITY == 3) {$statusMessage .= "Temperature critical (Threshold: ". $temperature_c[1]. ", ". $temperature_c[2] . " C):" . $controllerTemp . " C, "; }
-							}
-						}
-						if($crit eq "0") {
-							$status = myStatus($status, STATE_WARNING);
-							if($VERBOSITY == 0) {$statusMessage .= "Ctrl. temp. warning, "; }
-							if($VERBOSITY == 1) {$statusMessage .= "Temperature Warning: " . $controllerTemp . " C, "; }
-							if($VERBOSITY == 2) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature_w[1] . ", " . $temperature_w[2]. " C): " . $controllerTemp . " C,"; }
-							if($VERBOSITY == 3) {$statusMessage .= "Temperature Warning (Threshold: ". $temperature_w[1] . ", " . $temperature_w[2]. ", Critical Threshold: ". $temperature_c[1] . ", " . $temperature_c[2] ." C):" . $controllerTemp . " C, "; }
-						}
-					}
+				elsif(!(checkThreshs($1, $C_TEMP_WARNING))){
+					$status = 'Warning';
+					push @{$statusLevel_a[1]}, 'CTR_Temperature';
 				}
-			}
-			# Zero Maintenance Module
-			if(($zmm eq 1) && ($linevalues[0] eq "Status") && ($linevalues[1] ne "ZMM Optimal")) {
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "ZMM critical, "; }
-				if($VERBOSITY == 1) {$statusMessage .= "ZMM Module state critical, "; }
-				if($VERBOSITY >= 2) {$statusMessage .= "Zero Maintenance Module error or module not found!, "; }
+				$statusLevel_a[3]->{'CTR_Temperature'} = $1;
 			}
 		}
-
+		elsif($key eq 'Controller Status'){
+			if($foundController{$key} ne 'Optimal'){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, 'CTR_State';
+				$statusLevel_a[3]->{'CTR_State'} = $foundController{$key};
+			}
+		}
+		elsif($key eq 'Defunct disk drive count'){
+			if($foundController{$key} != 0){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, 'CTR_Defunct_drives';
+				$statusLevel_a[3]->{'CTR_Defunct_drives'} = $foundController{$key};
+			}
+		}
+		elsif($key eq 'Logical devices/Failed/Degraded'){
+			$foundController{$key} =~ /^([0-9]+)\/([0-9]+)\/([0-9]+)$/;
+			if(defined($2) && defined($3)){
+				if($2 != 0 || $3 != 0){
+					$status = 'Critical';
+					push @{$statusLevel_a[2]}, 'CTR_Failed_devices';
+					$statusLevel_a[3]->{'CTR_Failed_devices'} = $foundController{$key};
+				}
+			}
+		}
 	}
-	return ($status, $statusMessage);
+	if(defined($status)){
+		if($status eq 'Warning'){
+			if(${$statusLevel_a[0]} ne 'Critical'){
+				${$statusLevel_a[0]} = 'Warning';
+			}
+		}
+		else{
+			${$statusLevel_a[0]} = 'Critical';
+		}
+		$statusLevel_a[3]->{'CTR_Status'} = $status;
+	}
+	else{
+		$statusLevel_a[3]->{'CTR_Status'} = 'OK';
+	}
 }
 
 # Returns Information about physical Devices attached to the Adaptec Raid-Controller:
@@ -757,6 +688,8 @@ MAIN: {
 	if($zmmPresent == 1){getZMMStatus($arcconf, \@statusLevel_a, $verboseCommands_a); }
 	
 	my $controllerToCheck = getControllerInfo($arcconf, $verboseCommands_a);
+	
+	getControllerStatus(\@statusLevel_a, $controllerToCheck);
 	
 	use Data::Dumper;
 	print Dumper($controllerToCheck);
