@@ -135,6 +135,48 @@ sub getControllerVersion{
 	return (checkCommandStatus(\@output, $?));
 }
 
+# Get the status of the raid controller
+# @param arcconf The path to arcconf command utility
+# @param commands_a An array to push the used command to
+# @return A hash, each key a value of the raid controller info
+sub getControllerInfo{
+	my $arcconf = shift;
+	my $commands_a = shift;
+
+	my $command = "$arcconf GETCONFIG $CONTROLLER AD";
+	push @{$commands_a}, $command;
+
+	my %foundController_h;
+	my @output = `$command`;
+	if(checkCommandStatus(\@output, $?)){
+		my $currBlock;
+		foreach my $line(@output){
+			$line =~ s/^\s+|\s+$//g;
+			if($line =~ /^(Controller information|Controller Version Information)/){
+				$currBlock = $1;
+				next;
+			}
+			if(defined($currBlock)){
+				if($line =~ /\:/){
+					my @lineVals = split(':', $line);
+					$lineVals[0] =~ s/^\s+|\s+$//g;
+					$lineVals[1] =~ s/^\s+|\s+$//g;
+					$foundController_h{$lineVals[0]} = $lineVals[1];
+				}
+				#If the last value is parsed, reset block
+				if(exists($foundController_h{'Boot Flash'})){
+					undef $currBlock;
+				}
+			}
+		}
+	}
+	else {
+		print "Invalid arcconf command! ($command)\n";
+		exit(STATE_UNKNOWN);
+	}
+	return \%foundController_h;
+}
+
 # Returns Information about the Adaptec RAID-Controller itsself:
 #		- Controller Status
 #		- Defunctional Disks
@@ -714,8 +756,10 @@ MAIN: {
 	}
 	if($zmmPresent == 1){getZMMStatus($arcconf, \@statusLevel_a, $verboseCommands_a); }
 	
+	my $controllerToCheck = getControllerInfo($arcconf, $verboseCommands_a);
 	
 	use Data::Dumper;
+	print Dumper($controllerToCheck);
 	print Dumper($statusLevel_a[0]);
 	print Dumper($statusLevel_a[1]);
 	print Dumper($statusLevel_a[2]);
