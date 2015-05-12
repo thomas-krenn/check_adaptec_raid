@@ -101,6 +101,7 @@ sub displayVersion {
 	my $arcconf = shift;
 	if(defined($arcconf)){
 		my @arcconfVersion = `$arcconf`;
+		print "arcconf version:\n";
 		print grep /Version/, @arcconfVersion;
 	}
 	exit(STATE_OK);
@@ -515,6 +516,22 @@ sub getLogDevCfg {
 	return ($status, $statusMessage);
 }
 
+# Checks if a ZMM is present
+# @param arcconf The path to arcconf command utility
+# @return 1 if present, 0 if not
+sub checkZMMPresent{
+	my $arcconf = shift;
+	my $failed = 0;
+	my @output = `$arcconf GETCONFIG $CONTROLLER AD`;
+	if(checkCommandStatus(\@output, $?)){
+		$failed = grep /ZMM Failed/, @output;
+	}
+	if($failed){
+		return 0;
+	}
+	else{ return 1; }
+}
+
 MAIN: {
 	my ($arcconf, $sudo, $noSudo, $version, $exitCode);
 	# Create default sensor arrays and push them to status level
@@ -531,7 +548,6 @@ MAIN: {
 	push @statusLevel_a, $verboseCommands_a;
 	# Per default use a ZMM
 	my $zmm = 1;
-	my @enclosures;
 	my @logDevices;
 	my @physDevices;
 	my $platform = $^O;
@@ -543,7 +559,6 @@ MAIN: {
 		'vvv' => sub {$VERBOSITY = 3},
 		'V|version' => \$version,
 		'C|controller=i' => \$CONTROLLER,
-		'EID|enclosure=s' => \@enclosures,
 		'LD|logicaldevice=s' => \@logDevices,
 		'PD|physicaldevice=s' => \@physDevices,
 		'Tw|temperature-warn=s' => \$C_TEMP_WARNING,
@@ -584,41 +599,64 @@ MAIN: {
 			$arcconf = $sudo.' '.$arcconf;
 		}
 	}
-	
-	# check given thresholds
-	if(@temperature_c && !@temperature_w){
-		print "Please also specify warning threshold!\n";
-		displayUsage();
+	# Print arcconf version if available
+	if(defined($version)){ displayVersion($arcconf) }
+	# Check if the controller number can be used
+	if(!getControllerVersion($arcconf)){
+		print "Error: invalid controller number, controller not found!\n";
 		exit(STATE_UNKNOWN);
 	}
-	@temperature_w = getThresholds(\@temperature_w, 70);
-	@temperature_c = getThresholds(\@temperature_c, 75);
-	
-	# Input validation
-	my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
-	if($controllerVersion[1] eq "Invalid controller number.") {
-		print "Invalid controller number, device not found!";
+	# Prepare command line arrays
+	@logDevices = split(/,/,join(',', @logDevices));
+	@physDevices = split(/,/,join(',', @physDevices));
+	# Check if the BBU param is correct
+	if(($zmm != 1) && ($zmm != 0)) {
+		print "Error: invalid ZMM parameter, must be 0 or 1!\n";
 		exit(STATE_UNKNOWN);
 	}
-	if($zmm != 1 && $zmm != 0) {
-		print "Invalid ZMM parameter, must be 0 or 1!";
-		exit(STATE_UNKNOWN);
+	my $zmmPresent = 0;
+	if($zmm == 1){
+		$zmmPresent = checkZMMPresent($arcconf);
+		if($zmmPresent == 0){
+			${$statusLevel_a[0]} = 'Critical';
+			push @{$criticals_a}, 'ZMM_Present';
+			$statusLevel_a[3]->{'ZMM_Status'} = 'Critical';
+		}
 	}
-
-	# Set exit status
-	my $newExitStatus = 0;
-	my $newStatusMessage = '';
-	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, \@temperature_w, \@temperature_c, $zmm);
-	$newStatusMessage .= $statusMessage;
-	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, $physDevices);
-	$newStatusMessage .= $statusMessage;
-	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, $logDevices);
-	$newStatusMessage .= $statusMessage;
-	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-	if($EXITSTATUS == 0) { print "AACRAID OK (Ctrl #$controller)\n"; }
-	elsif($EXITSTATUS == 1) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID WARNING (Ctrl #$controller): [$newStatusMessage]\n"; }
-	elsif($EXITSTATUS ==2) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newStatusMessage]\n"; }
+#	# check given thresholds
+#	if(@temperature_c && !@temperature_w){
+#		print "Please also specify warning threshold!\n";
+#		displayUsage();
+#		exit(STATE_UNKNOWN);
+#	}
+#	@temperature_w = getThresholds(\@temperature_w, 70);
+#	@temperature_c = getThresholds(\@temperature_c, 75);
+#	
+#	# Input validation
+#	my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
+#	if($controllerVersion[1] eq "Invalid controller number.") {
+#		print "Invalid controller number, device not found!";
+#		exit(STATE_UNKNOWN);
+#	}
+#	if($zmm != 1 && $zmm != 0) {
+#		print "Invalid ZMM parameter, must be 0 or 1!";
+#		exit(STATE_UNKNOWN);
+#	}
+#
+#	# Set exit status
+#	my $newExitStatus = 0;
+#	my $newStatusMessage = '';
+#	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, \@temperature_w, \@temperature_c, $zmm);
+#	$newStatusMessage .= $statusMessage;
+#	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
+#	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, $physDevices);
+#	$newStatusMessage .= $statusMessage;
+#	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
+#	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, $logDevices);
+#	$newStatusMessage .= $statusMessage;
+#	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
+#	if($EXITSTATUS == 0) { print "AACRAID OK (Ctrl #$controller)\n"; }
+#	elsif($EXITSTATUS == 1) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID WARNING (Ctrl #$controller): [$newStatusMessage]\n"; }
+#	elsif($EXITSTATUS ==2) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newStatusMessage]\n"; }
 	exit($EXITSTATUS);
 }
