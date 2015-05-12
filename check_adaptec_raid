@@ -32,6 +32,8 @@ our $C_TEMP_WARNING = 80;
 our $C_TEMP_CRITICAL = 90;
 our $PD_TEMP_WARNING = 40;
 our $PD_TEMP_CRITICAL = 45;
+our $ZMM_TEMP_WARNING = 60;
+our $ZMM_TEMP_CRITICAL = 75;
 our $CONTROLLER = 1;
 our $EXITSTATUS = 0;
 
@@ -516,6 +518,107 @@ sub getLogDevCfg {
 	return ($status, $statusMessage);
 }
 
+# Checks the status of the ZMM, parses 'GETCONFIG AD' for the given
+# controller.
+# @param arcconf The path to arcconf command utility
+# @param statusLevel_a The status level array, elem 0 is the current status,
+# elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
+# information for the sensors.
+# @param commands_a An array to push the used command to
+sub getZMMStatus {
+	my $arcconf = shift;
+	my @statusLevel_a = @{(shift)};
+	my $commands_a = shift;
+	
+	my $command = "$arcconf GETCONFIG $CONTROLLER AD";
+	push @{$commands_a}, $command;
+
+	my $status;
+	my @output = `$command`;
+	if(checkCommandStatus(\@output, $?)) {
+		my $currBlock;
+		my %foundZMM_h;
+		foreach my $line (@output) {
+			$line =~ s/^\s+|\s+$//g;
+			if($line =~ /^(Controller Cache Backup)/){
+				$currBlock = $1;
+				next;
+			}
+			if(defined($currBlock)){
+				if($line =~ /\:/){
+					my @lineVals = split(':', $line);
+					$lineVals[0] =~ s/^\s+|\s+$//g;
+					$lineVals[1] =~ s/^\s+|\s+$//g;
+					$foundZMM_h{$lineVals[0]} = $lineVals[1];
+				}
+			}
+		}
+		if(exists($foundZMM_h{'Overall Backup Unit Status'})){
+			if($foundZMM_h{'Overall Backup Unit Status'} ne 'Ready'){
+				$status = 'Warning';
+				push @{$statusLevel_a[1]}, 'ZMM_State';
+				$statusLevel_a[3]->{'ZMM_State'} = $foundZMM_h{'Overall Backup Unit Status'};
+			}
+		}
+		if(exists($foundZMM_h{'Non-Volatile Storage Status'})){
+			if($foundZMM_h{'Non-Volatile Storage Status'} ne 'Ready'){
+				$status = 'Warning';
+				push @{$statusLevel_a[1]}, 'ZMM_NVS_Status';
+				$statusLevel_a[3]->{'ZMM_NVS_Status'} = $foundZMM_h{'Non-Volatile Storage Status'};
+			}
+		}
+		if(exists($foundZMM_h{'Supercap Status'})){
+			if($foundZMM_h{'Supercap Status'} ne 'Ready'){
+				$status = 'Warning';
+				push @{$statusLevel_a[1]}, 'ZMM_SCap_Status';
+				$statusLevel_a[3]->{'ZMM_SCap_Status'} = $foundZMM_h{'Supercap Status'};
+			}
+		}
+		if(exists($foundZMM_h{'Current Temperature'})){
+			$foundZMM_h{'Current Temperature'} =~ /([0-9]+) deg C$/;
+			if(!(checkThreshs($1, $ZMM_TEMP_CRITICAL))){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, 'ZMM_Temperature';
+			}
+			elsif(!(checkThreshs($1, $ZMM_TEMP_WARNING))){
+				$status = 'Warning';
+				push @{$statusLevel_a[1]}, 'ZMM_Temperature';
+			}
+			$statusLevel_a[3]->{'ZMM_Temperature'} = $1;
+		}
+		if(exists($foundZMM_h{'Voltage(Present/Max)'})){
+			$foundZMM_h{'Voltage(Present/Max)'} =~ /(^[0-9]+) mV/;
+			$statusLevel_a[3]->{'ZMM_Voltage_Present'} = $1;
+		}
+		if(exists($foundZMM_h{'Health'})){
+			$foundZMM_h{'Health'} =~ /(^[0-9]+) percent/;
+			$statusLevel_a[3]->{'ZMM_Health'} = $1;
+		}
+		if(exists($foundZMM_h{'Charge Level'})){
+			$foundZMM_h{'Charge Level'} =~ /(^[0-9]+) percent/;
+			$statusLevel_a[3]->{'ZMM_Charge_Level'} = $1;
+		}
+		if(defined($status)){
+			if($status eq 'Warning'){
+				if(${$statusLevel_a[0]} ne 'Critical'){
+					${$statusLevel_a[0]} = 'Warning';
+				}
+			}
+			else{
+				${$statusLevel_a[0]} = 'Critical';
+			}
+			$statusLevel_a[3]->{'ZMM_Status'} = $status;
+		}
+		else{
+			$statusLevel_a[3]->{'ZMM_Status'} = 'OK';
+		}
+	}
+	else {
+		print "Invalid arcconf command! ($command)\n";
+		exit(STATE_UNKNOWN);
+	}
+}
+
 # Checks if a ZMM is present
 # @param arcconf The path to arcconf command utility
 # @return 1 if present, 0 if not
@@ -623,6 +726,9 @@ MAIN: {
 			$statusLevel_a[3]->{'ZMM_Status'} = 'Critical';
 		}
 	}
+	if($zmmPresent == 1){getZMMStatus($arcconf, \@statusLevel_a, $verboseCommands_a); }
+	use Data::Dumper;
+	print Dumper($statusLevel_a[3]);
 #	# check given thresholds
 #	if(@temperature_c && !@temperature_w){
 #		print "Please also specify warning threshold!\n";
