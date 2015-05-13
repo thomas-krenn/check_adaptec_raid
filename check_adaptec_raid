@@ -242,6 +242,57 @@ sub getControllerStatus{
 	}
 }
 
+# Checks which logical devices are present for the given controller and parses
+# the logical devices to a list of hashes. Each hash represents a logical device
+# with its values from the output.
+# @param arcconf The path to arcconf command utility
+# @param logDevices If given, a list of desired logical device numbers
+# @param commands_a An array to push the used command to
+# @return A list of hashes, each hash is one logical device.
+sub getLogicalDevices{
+	my $arcconf = shift;
+	my @logDevices = @{(shift)};
+	my $commands_a = shift;
+
+	my $command = "$arcconf GETCONFIG $CONTROLLER LD";
+	push @{$commands_a}, $command;
+	
+	my @foundDevs;
+	my @output = `$command`;
+	if(checkCommandStatus(\@output, $?)) {
+		my $currBlock;
+		my $line_ref;
+		foreach my $line(@output){
+			my @splittedLine;
+			if($line =~ /^Logical device number ([0-9]+)$/){
+				$currBlock = "ld".$1;
+				$line_ref = {};
+				next;
+			}
+			if(defined($currBlock)){
+				if($line =~ /\:/){
+					my @lineVals = split(':', $line);
+					$lineVals[0] =~ s/^\s+|\s+$//g;
+					$lineVals[1] =~ s/^\s+|\s+$//g;
+					$line_ref->{$lineVals[0]} = $lineVals[1];
+				}
+				#If the last value is parsed, reset block
+				if(exists($line_ref->{'Power settings'})){
+					push @foundDevs, $line_ref;
+					undef $currBlock;
+					undef $line_ref;
+				}
+			}
+		}
+	}
+	else {
+		print "Invalid StorCLI command! ($command)\n";
+		exit(STATE_UNKNOWN);
+	}
+	return \@foundDevs;
+}
+
+
 # Returns Information about physical Devices attached to the Adaptec Raid-Controller:
 #		- Disk Status
 #		- S.M.A.R.T. Status
@@ -685,14 +736,16 @@ MAIN: {
 			$statusLevel_a[3]->{'ZMM_Status'} = 'Critical';
 		}
 	}
-	if($zmmPresent == 1){getZMMStatus($arcconf, \@statusLevel_a, $verboseCommands_a); }
+	if($zmmPresent == 1){ getZMMStatus($arcconf, \@statusLevel_a, $verboseCommands_a); }
 	
 	my $controllerToCheck = getControllerInfo($arcconf, $verboseCommands_a);
+	my $LDDevicesToCheck = getLogicalDevices($arcconf, \@logDevices, $verboseCommands_a);
 	
 	getControllerStatus(\@statusLevel_a, $controllerToCheck);
 	
 	use Data::Dumper;
 	print Dumper($controllerToCheck);
+	print Dumper($LDDevicesToCheck);
 	print Dumper($statusLevel_a[0]);
 	print Dumper($statusLevel_a[1]);
 	print Dumper($statusLevel_a[2]);
