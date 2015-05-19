@@ -417,6 +417,70 @@ sub getPhysicalDevices{
 	return \@foundDevs;
 }
 
+# Checks the status of the physical devices.
+# @param statusLevel_a The status level array, elem 0 is the current status,
+# elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
+# information for the sensors.
+# @param foundPDs The array of physical devices, created by getPhysicalDevices
+sub getPDStatus{
+	my @statusLevel_a = @{(shift)};
+	my @foundPDs = @{(shift)};
+	my $status;
+	foreach my $PD (@foundPDs){
+		if(exists($PD->{'State'})){
+			if(!($PD->{'State'} =~ /^(Online|Global Hot-Spare|Dedicated Hot-Spare|Hot Spare|Ready|Online \(JBOD\))$/)){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, $PD->{'pd'}.'_State';
+				$statusLevel_a[3]->{$PD->{'pd'}.'_State'} = $PD->{'State'};
+			}
+		}
+		if(exists($PD->{'S.M.A.R.T.'})){
+			if($PD->{'S.M.A.R.T.'} ne 'No'){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, $PD->{'pd'}.'_SMART_flag';
+				$statusLevel_a[3]->{$PD->{'pd'}.'_SMART_flag'} = $PD->{'S.M.A.R.T.'};
+			}
+		}
+		if(exists($PD->{'S.M.A.R.T. warnings'})){
+			if($PD->{'S.M.A.R.T. warnings'} ne '0'){
+				$status = 'Warning';
+				push @{$statusLevel_a[1]}, $PD->{'pd'}.'_SMART_warnings';
+				$statusLevel_a[3]->{$PD->{'pd'}.'_SMART_warnings'} = $PD->{'S.M.A.R.T. warnings'};
+			}
+		}
+		if(exists($PD->{'Power State'})){
+			if($PD->{'Power State'} ne 'Full rpm'){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, $PD->{'pd'}.'_Power_state';
+				$statusLevel_a[3]->{$PD->{'pd'}.'_Power_state'} = $PD->{'Power State'};
+			}
+		}
+		if(exists($PD->{'Failed logical device segments'})){
+			if($PD->{'Failed logical device segments'} ne 'False'){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, $PD->{'pd'}.'_Failed_segments';
+				$statusLevel_a[3]->{$PD->{'pd'}.'_Failed_segments'} = $PD->{'Failed logical device segments'};
+			}
+		}
+	}
+	if(defined($status)){
+		if($status eq 'Warning'){
+			if(${$statusLevel_a[0]} ne 'Critical'){
+				${$statusLevel_a[0]} = 'Warning';
+			}
+		}
+		else{
+			${$statusLevel_a[0]} = 'Critical';
+		}
+		$statusLevel_a[3]->{'PD_Status'} = $status;
+	}
+	else{
+		if(!exists($statusLevel_a[3]->{'PD_Status'})){
+			$statusLevel_a[3]->{'PD_Status'} = 'OK';
+		}
+	}
+}
+
 # Checks the status of the ZMM, parses 'GETCONFIG AD' for the given
 # controller.
 # @param arcconf The path to arcconf command utility
@@ -674,10 +738,12 @@ MAIN: {
 	
 	getControllerStatus(\@statusLevel_a, $controllerToCheck);
 	getLDStatus(\@statusLevel_a, $LDDevicesToCheck);
+	getPDStatus(\@statusLevel_a, $PDDevicesToCheck);
 	
 	use Data::Dumper;
 	print Dumper($controllerToCheck);
 	print Dumper($LDDevicesToCheck);
+	print Dumper($PDDevicesToCheck);
 	print Dumper($statusLevel_a[0]);
 	print Dumper($statusLevel_a[1]);
 	print Dumper($statusLevel_a[2]);
