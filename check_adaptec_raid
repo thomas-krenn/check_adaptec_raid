@@ -258,11 +258,9 @@ sub getLogicalDevices{
 	push @{$commands_a}, $command;
 	
 	# Check if a desired list of LDs should be used
-	my @usedLD_a;
 	my %usedLD_h;
 	if(@logDevices){
-		@usedLD_a = split(/,/, join(',', @logDevices));
-		%usedLD_h = map {$_ => 1} @usedLD_a;
+		%usedLD_h = map {$_ => 1} @logDevices;
 	}
 	
 	my @foundDevs;
@@ -367,11 +365,9 @@ sub getPhysicalDevices{
 	push @{$commands_a}, $command;
 	
 	# Check if a desired list of PDs should be used
-	my @usedPD_a;
 	my %usedPD_h;
 	if(@physDevices){
-		@usedPD_a = split(/,/, join(',', @physDevices));
-		%usedPD_h = map {$_ => 1} @usedPD_a;
+		%usedPD_h = map {$_ => 1} @physDevices;
 	}
 	
 	my @foundDevs;
