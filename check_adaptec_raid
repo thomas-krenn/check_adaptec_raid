@@ -278,6 +278,7 @@ sub getLogicalDevices{
 				}
 				#If the last value is parsed, reset block
 				if(exists($line_ref->{'Power settings'})){
+					$line_ref->{'ld'} = $currBlock;
 					push @foundDevs, $line_ref;
 					undef $currBlock;
 					undef $line_ref;
@@ -292,6 +293,48 @@ sub getLogicalDevices{
 	return \@foundDevs;
 }
 
+# Checks the status of the logical devices.
+# @param statusLevel_a The status level array, elem 0 is the current status,
+# elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
+# information for the sensors.
+# @param foundLDs The array of logical devices, created by getLogicalDevices
+sub getLDStatus{
+	my @statusLevel_a = @{(shift)};
+	my @foundLDs = @{(shift)};
+	my $status;
+	foreach my $LD (@foundLDs){
+		if(exists($LD->{'State'})){
+			if($LD->{'Status of logical device'} ne 'Optimal'){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, $LD->{'ld'}.'_State';
+				$statusLevel_a[3]->{$LD->{'ld'}.'_State'} = $LD->{'Status of logical device'};
+			}
+		}
+		if(exists($LD->{'Failed stripes'})){
+			if($LD->{'Failed stripes'} ne 'No'){
+				$status = 'Warning';
+				push @{$statusLevel_a[1]}, $LD->{'ld'}.'_Failed_Stripes';
+				$statusLevel_a[3]->{$LD->{'ld'}.'_Failed_Stripes'} = $LD->{'Failed stripes'};
+			}
+		}
+	}
+	if(defined($status)){
+		if($status eq 'Warning'){
+			if(${$statusLevel_a[0]} ne 'Critical'){
+				${$statusLevel_a[0]} = 'Warning';
+			}
+		}
+		else{
+			${$statusLevel_a[0]} = 'Critical';
+		}
+		$statusLevel_a[3]->{'LD_Status'} = $status;
+	}
+	else{
+		if(!exists($statusLevel_a[3]->{'LD_Status'})){
+			$statusLevel_a[3]->{'LD_Status'} = 'OK';
+		}
+	}
+}
 
 # Returns Information about physical Devices attached to the Adaptec Raid-Controller:
 #		- Disk Status
@@ -742,6 +785,7 @@ MAIN: {
 	my $LDDevicesToCheck = getLogicalDevices($arcconf, \@logDevices, $verboseCommands_a);
 	
 	getControllerStatus(\@statusLevel_a, $controllerToCheck);
+	getLDStatus(\@statusLevel_a, $LDDevicesToCheck);
 	
 	use Data::Dumper;
 	print Dumper($controllerToCheck);
