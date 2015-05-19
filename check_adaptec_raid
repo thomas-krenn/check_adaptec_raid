@@ -297,7 +297,7 @@ sub getLogicalDevices{
 		}
 	}
 	else {
-		print "Invalid StorCLI command! ($command)\n";
+		print "Invalid arcconf command! ($command)\n";
 		exit(STATE_UNKNOWN);
 	}
 	return \@foundDevs;
