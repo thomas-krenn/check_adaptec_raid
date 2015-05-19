@@ -308,6 +308,49 @@ sub getLogicalDevices{
 	return \@foundDevs;
 }
 
+# Checks the status of the logical devices.
+# @param statusLevel_a The status level array, elem 0 is the current status,
+# elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
+# information for the sensors.
+# @param foundLDs The array of logical devices, created by getLogicalDevices
+sub getLDStatus{
+	my @statusLevel_a = @{(shift)};
+	my @foundLDs = @{(shift)};
+	my $status;
+	foreach my $LD (@foundLDs){
+		if(exists($LD->{'State'})){
+			if($LD->{'Status of logical device'} ne 'Optimal'){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, $LD->{'ld'}.'_State';
+				$statusLevel_a[3]->{$LD->{'ld'}.'_State'} = $LD->{'Status of logical device'};
+			}
+		}
+		if(exists($LD->{'Failed stripes'})){
+			if($LD->{'Failed stripes'} ne 'No'){
+				$status = 'Warning';
+				push @{$statusLevel_a[1]}, $LD->{'ld'}.'_Failed_Stripes';
+				$statusLevel_a[3]->{$LD->{'ld'}.'_Failed_Stripes'} = $LD->{'Failed stripes'};
+			}
+		}
+	}
+	if(defined($status)){
+		if($status eq 'Warning'){
+			if(${$statusLevel_a[0]} ne 'Critical'){
+				${$statusLevel_a[0]} = 'Warning';
+			}
+		}
+		else{
+			${$statusLevel_a[0]} = 'Critical';
+		}
+		$statusLevel_a[3]->{'LD_Status'} = $status;
+	}
+	else{
+		if(!exists($statusLevel_a[3]->{'LD_Status'})){
+			$statusLevel_a[3]->{'LD_Status'} = 'OK';
+		}
+	}
+}
+
 # Checks which physical devices are present for the given controller and parses
 # the physical devices to a list of hashes. Each hash represents a physical device
 # with its values from the output.
@@ -372,166 +415,6 @@ sub getPhysicalDevices{
 		exit(STATE_UNKNOWN);
 	}
 	return \@foundDevs;
-}
-
-
-
-
-# Checks the status of the logical devices.
-# @param statusLevel_a The status level array, elem 0 is the current status,
-# elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
-# information for the sensors.
-# @param foundLDs The array of logical devices, created by getLogicalDevices
-sub getLDStatus{
-	my @statusLevel_a = @{(shift)};
-	my @foundLDs = @{(shift)};
-	my $status;
-	foreach my $LD (@foundLDs){
-		if(exists($LD->{'State'})){
-			if($LD->{'Status of logical device'} ne 'Optimal'){
-				$status = 'Critical';
-				push @{$statusLevel_a[2]}, $LD->{'ld'}.'_State';
-				$statusLevel_a[3]->{$LD->{'ld'}.'_State'} = $LD->{'Status of logical device'};
-			}
-		}
-		if(exists($LD->{'Failed stripes'})){
-			if($LD->{'Failed stripes'} ne 'No'){
-				$status = 'Warning';
-				push @{$statusLevel_a[1]}, $LD->{'ld'}.'_Failed_Stripes';
-				$statusLevel_a[3]->{$LD->{'ld'}.'_Failed_Stripes'} = $LD->{'Failed stripes'};
-			}
-		}
-	}
-	if(defined($status)){
-		if($status eq 'Warning'){
-			if(${$statusLevel_a[0]} ne 'Critical'){
-				${$statusLevel_a[0]} = 'Warning';
-			}
-		}
-		else{
-			${$statusLevel_a[0]} = 'Critical';
-		}
-		$statusLevel_a[3]->{'LD_Status'} = $status;
-	}
-	else{
-		if(!exists($statusLevel_a[3]->{'LD_Status'})){
-			$statusLevel_a[3]->{'LD_Status'} = 'OK';
-		}
-	}
-}
-
-# Returns Information about physical Devices attached to the Adaptec Raid-Controller:
-#		- Disk Status
-#		- S.M.A.R.T. Status
-#		- S.M.A.R.T. Warnings
-#		- Low-RPM Warnings
-#		- Failed Disk Segments
-sub getPhysDevCfg {
-	my $sudo = $_[0];
-	my $arcconf = $_[1];
-	my $controller = $_[2];
-	my $devices = $_[3];
-	my $statusMessage = ''; # Return String
-	my @output = `$sudo $arcconf GETCONFIG $controller PD`;
-	my (@faildevices, @linevalues);
-	my $status = 0; # Return Code
-	
-	# Get a sorted list of user defined numbers and define
-	# a hash to check if current PD is in user PDs
-	my @userPD_a;
-	my %userPD_h;
-	if(defined($devices)) {
-		@userPD_a = split(/,/, join(',',$devices));
-		%userPD_h = map {$_ => 1} @userPD_a;
-	}
-
-	my $deviceToCheck;
-	my $devicesChecked = 0;
-	foreach my $line (@output) {
-		if($line =~ /(Device #)([0-9]+)/) {
-			$deviceToCheck = $2;
-			$devicesChecked++;
-		}
-		# Skip lines as long we don't have a device to check
-		next if(!defined($deviceToCheck));
-		# If array has elements but key doesn't exist, skip PD
-		if(defined($deviceToCheck) && @userPD_a && !(exists $userPD_h{$deviceToCheck})){
-			$devicesChecked--;
-			undef $deviceToCheck;
-			next;
-		}
-		# Skip PD if it is a backplane 
-		if(defined($deviceToCheck) && ($line =~ /Device is an Enclosure services device/)) {
-			$devicesChecked--;
-			undef $deviceToCheck;
-			next;
-		}
-		# Linesplitting and removing spaces
-		if(defined($deviceToCheck) && index($line, ':') != -1){
-			@linevalues = split(/:/, $line);
-			$linevalues[0] =~ s/^\s+|\s+$//g;
-			$linevalues[1] =~ s/^\s+|\s+$//g;
-			# Main disk status (Online/Offline?)
-			if(($linevalues[0] eq "State") && !($linevalues[1] =~ /^(Online|Global Hot-Spare|Dedicated Hot-Spare|Hot Spare|Ready|Online \(JBOD\))$/)) {
-				# check if device is in failed array, else add it
-				if(!grep {$_ eq $deviceToCheck} @faildevices) {
-					push(@faildevices, $deviceToCheck);
-				}
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "Disk offline, "; }
-				if($VERBOSITY >= 1) {$statusMessage .= "Disk $deviceToCheck is offline, "; }
-			}
-			# Overall S.M.A.R.T. status
-			elsif(($linevalues[0] eq "S.M.A.R.T.") && ($linevalues[1] ne "No")) {
-				if(!grep {$_ eq $deviceToCheck} @faildevices) {
-					push(@faildevices, $deviceToCheck);
-				}
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "S.M.A.R.T. critical, "; }
-				if($VERBOSITY >= 1) {$statusMessage .= "Disk $deviceToCheck: S.M.A.R.T. status critical, "; }
-			}
-			# Check if any S.M.A.R.T. warnings occured
-			elsif(($linevalues[0] eq "S.M.A.R.T. warnings") && ($linevalues[1] ne "0")){
-				if(!grep {$_ eq $deviceToCheck} @faildevices) {
-					push(@faildevices, $deviceToCheck);
-				}
-				$status = myStatus($status, STATE_WARNING);
-				if($VERBOSITY == 0) {$statusMessage .= "S.M.A.R.T. warning, "; }
-				if($VERBOSITY == 1) {$statusMessage .= "Disk $deviceToCheck: S.M.A.R.T. warnings, "; }
-				if($VERBOSITY >= 2) {$statusMessage .= "Disk $deviceToCheck: Disk has one or more S.M.A.R.T. warnings, "; }
-			}
-			# Check if the disk does not run with full (physical) speed
-			elsif(($linevalues[0] eq "Power State") && ($linevalues[1] ne "Full rpm")){
-				if(!grep {$_ eq $deviceToCheck} @faildevices) {
-					push(@faildevices, $deviceToCheck);
-				}
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "Low rpm warning, "; }
-				if($VERBOSITY == 1) {$statusMessage .= "Disk $deviceToCheck does not run with full speed, "; }
-				if($VERBOSITY >= 2) {$statusMessage .= "Disk $deviceToCheck: \nDisk run in a different power state (not full rpm), "; }
-			}
-			# Look for bad device segments
-			elsif(($linevalues[0] eq "Failed logical device segments") && ($linevalues[1] ne "False")){
-				if(!grep {$_ eq $deviceToCheck} @faildevices) {
-					push(@faildevices, $deviceToCheck);
-				}
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "Log. device failed segm, "; }
-				if($VERBOSITY >= 1) {$statusMessage .= "Disk $deviceToCheck has failed logical device segments, "; }
-			}
-		}
-	}
-	if(defined($devices) && $devicesChecked ne scalar(@userPD_a)) {
-		print "Invalid Physical Devices specified or one is a service device!\n";
-		exit(STATE_UNKNOWN);
-	}
-	# Status output
-	my $faildevicenum = scalar(@faildevices);
-	if($VERBOSITY >= 0 && $faildevicenum > 0) {
-		$statusMessage .= "$faildevicenum phys. disk(s) failed, ";
-	}
-
-	return ($status, $statusMessage);
 }
 
 # Checks the status of the ZMM, parses 'GETCONFIG AD' for the given
