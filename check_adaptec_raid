@@ -393,7 +393,7 @@ sub getPhysicalDevices{
 				}
 				#If the last value is parsed, reset block
 				if(exists($line_ref->{'NCQ status'})){
-					$line_ref->{'ld'} = $currBlock;
+					$line_ref->{'pd'} = $currBlock;
 					push @foundDevs, $line_ref;
 					undef $currBlock;
 					undef $line_ref;
