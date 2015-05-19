@@ -300,6 +300,11 @@ sub getLogicalDevices{
 		print "Invalid arcconf command! ($command)\n";
 		exit(STATE_UNKNOWN);
 	}
+	# Check if all user defined LDs were found
+	if(@logDevices && (scalar(@foundDevs) != scalar(@logDevices))){
+		print "Invalid logical device(s) specified!\n";
+		exit(STATE_UNKNOWN);
+	}
 	return \@foundDevs;
 }
 
@@ -457,86 +462,6 @@ sub getPhysDevCfg {
 		$statusMessage .= "$faildevicenum phys. disk(s) failed, ";
 	}
 
-	return ($status, $statusMessage);
-}
-
-# Returns Information about logical Devices:
-#		- General Logical Devices Status
-#		- Failed Stripes
-sub getLogDevCfg {
-	my $sudo = $_[0];
-	my $arcconf = $_[1];
-	my $controller = $_[2];
-	my $devices = $_[3];
-	my $devicenum = -1;
-	my $status = 0; #Return status
-	my $statusMessage = ''; #Return string
-	my @faildevices;
-	my @output = `$sudo $arcconf GETCONFIG $controller LD`;
-	my @linevalues;
-
-	# Get a sorted list of user defined numbers and define
-	# a hash to check if current PD is in user PDs
-	my @userLD_a;
-	my %userLD_h;
-	if(defined($devices)) {
-		@userLD_a = split(/,/, join(',', $devices));
-		%userLD_h = map {$_ => 1} @userLD_a;
-	}
-
-	my $ldToCheck;
-	my $ldChecked = 0;
-	foreach my $line (@output) {
-		if($line =~ /(Logical device number )([0-9]+)/) {
-			$ldToCheck = $2;
-			$devicenum = $2;
-			$ldChecked++;
-		}
-		
-		# Skip lines as long we don't have a device to check
-		next if(!defined($ldToCheck));
-		# If array has elements but key doesn't exist, skip LD
-		if(defined($ldToCheck) && @userLD_a && !(exists $userLD_h{$ldToCheck})) {
-			$ldChecked--;
-			undef $ldToCheck;
-			next;
-		}
-		# Linesplitting and removing spaces
-		if(defined($ldToCheck) && index($line, ':') != -1) {
-			@linevalues = split(/:/, $line);
-			$linevalues[0] =~ s/^\s+|\s+$//g;
-			$linevalues[1] =~ s/^\s+|\s+$//g;
-			# Main logical device status
-			if(($linevalues[0] eq "Status of logical device") && ($linevalues[1] ne "Optimal")) {
-				if(!grep {$_ eq $devicenum} @faildevices) {
-					push(@faildevices, $devicenum);
-				}
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "Log. device critical, "; }
-				if($VERBOSITY >= 1) {$statusMessage .= "State of logical disk $devicenum critical, "; }
-			}
-			# Check for failed stripes
-			elsif(($linevalues[0] eq "Failed stripes") && ($linevalues[1] ne "No")) {
-				if(!grep {$_ eq $devicenum} @faildevices) {
-					push(@faildevices, $devicenum);
-				}
-				$status = myStatus($status, STATE_CRITICAL);
-				if($VERBOSITY == 0) {$statusMessage .= "Failed stripes, "; }
-				if($VERBOSITY >= 1) {$statusMessage .= "Logical disk $devicenum has failed stripes, "; }
-			}
-		}
-	}
-
-	# Invalid Logical Device Error
-	if(defined($devices) && $ldChecked != scalar(@userLD_a)){
-		print "Invalid Logical Devices specified!\n";
-		exit(STATE_UNKNOWN);
-	}
-	# Status Output
-	my $faildevicenum = scalar(@faildevices);
-	if($VERBOSITY >= 0 && $faildevicenum > 0) {
-		$statusMessage .= "$faildevicenum log. device(s) failed, ";
-	}
 	return ($status, $statusMessage);
 }
 
