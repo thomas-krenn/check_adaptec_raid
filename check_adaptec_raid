@@ -308,6 +308,75 @@ sub getLogicalDevices{
 	return \@foundDevs;
 }
 
+# Checks which physical devices are present for the given controller and parses
+# the physical devices to a list of hashes. Each hash represents a physical device
+# with its values from the output.
+# @param arcconf The path to arcconf command utility
+# @param physDevices If given, a list of desired physical device numbers
+# @param commands_a An array to push the used command to
+# @return A list of hashes, each hash is one physical device.
+sub getPhysicalDevices{
+	my $arcconf = shift;
+	my @physDevices = @{(shift)};
+	my $commands_a = shift;
+
+	my $command = "$arcconf GETCONFIG $CONTROLLER PD";
+	push @{$commands_a}, $command;
+	
+	# Check if a desired list of PDs should be used
+	my @usedPD_a;
+	my %usedPD_h;
+	if(@physDevices){
+		@usedPD_a = split(/,/, join(',', @physDevices));
+		%usedPD_h = map {$_ => 1} @usedPD_a;
+	}
+	
+	my @foundDevs;
+	my @output = `$command`;
+	if(checkCommandStatus(\@output, $?)) {
+		my $currBlock;
+		my $line_ref;
+		foreach my $line(@output){
+			my @splittedLine;
+			if($line =~ /^\s+Device \#([0-9]+)$/){
+				if(!@physDevices || !(exists $usedPD_h{$1})){
+					$currBlock = "pd".$1;
+					$line_ref = {};
+					next;
+				}
+			}
+			if(defined($currBlock)){
+				if($line =~ /\:/){
+					my @lineVals = split(':', $line);
+					$lineVals[0] =~ s/^\s+|\s+$//g;
+					$lineVals[1] =~ s/^\s+|\s+$//g;
+					$line_ref->{$lineVals[0]} = $lineVals[1];
+				}
+				#If the last value is parsed, reset block
+				if(exists($line_ref->{'NCQ status'})){
+					$line_ref->{'ld'} = $currBlock;
+					push @foundDevs, $line_ref;
+					undef $currBlock;
+					undef $line_ref;
+				}
+			}
+		}
+	}
+	else {
+		print "Invalid arcconf command! ($command)\n";
+		exit(STATE_UNKNOWN);
+	}
+	# Check if all user defined LDs were found
+	if(@physDevices && (scalar(@foundDevs) != scalar(@physDevices))){
+		print "Invalid physical device(s) specified!\n";
+		exit(STATE_UNKNOWN);
+	}
+	return \@foundDevs;
+}
+
+
+
+
 # Checks the status of the logical devices.
 # @param statusLevel_a The status level array, elem 0 is the current status,
 # elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
@@ -718,6 +787,7 @@ MAIN: {
 	
 	my $controllerToCheck = getControllerInfo($arcconf, $verboseCommands_a);
 	my $LDDevicesToCheck = getLogicalDevices($arcconf, \@logDevices, $verboseCommands_a);
+	my $PDDevicesToCheck = getPhysicalDevices($arcconf, \@physDevices, $verboseCommands_a);
 	
 	getControllerStatus(\@statusLevel_a, $controllerToCheck);
 	getLDStatus(\@statusLevel_a, $LDDevicesToCheck);
