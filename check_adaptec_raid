@@ -257,6 +257,14 @@ sub getLogicalDevices{
 	my $command = "$arcconf GETCONFIG $CONTROLLER LD";
 	push @{$commands_a}, $command;
 	
+	# Check if a desired list of LDs should be used
+	my @usedLD_a;
+	my %usedLD_h;
+	if(@logDevices){
+		@usedLD_a = split(/,/, join(',', @logDevices));
+		%usedLD_h = map {$_ => 1} @usedLD_a;
+	}
+	
 	my @foundDevs;
 	my @output = `$command`;
 	if(checkCommandStatus(\@output, $?)) {
@@ -265,9 +273,11 @@ sub getLogicalDevices{
 		foreach my $line(@output){
 			my @splittedLine;
 			if($line =~ /^Logical device number ([0-9]+)$/){
-				$currBlock = "ld".$1;
-				$line_ref = {};
-				next;
+				if(!@logDevices || !(exists $usedLD_h{$1})){
+					$currBlock = "ld".$1;
+					$line_ref = {};
+					next;
+				}
 			}
 			if(defined($currBlock)){
 				if($line =~ /\:/){
