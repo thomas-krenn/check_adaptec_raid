@@ -82,6 +82,8 @@ sub displayUsage {
 	print "  [ -z <0/1> | --ZMM <0/1> ]
     Check if a ZMM is present unless '-z 0' is defined. This ensures that for a
     given controller a ZMM must be present per default.\n";
+    print "  [--nosudo]
+    Turn off using sudo.\n";
 }
 
 # Displays a short Help text for the user
