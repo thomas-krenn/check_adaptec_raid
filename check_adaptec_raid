@@ -948,7 +948,7 @@ MAIN: {
 	print ${$statusLevel_a[0]}." ";
 	print getStatusString("Critical",\@statusLevel_a);
 	print getStatusString("Warning",\@statusLevel_a);
-		my $perf_str = getPerfString(\@statusLevel_a);
+	my $perf_str = getPerfString(\@statusLevel_a);
 	if($perf_str){
 		print "|".$perf_str;
 	}
