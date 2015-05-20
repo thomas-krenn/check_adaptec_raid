@@ -503,7 +503,7 @@ sub getZMMStatus {
 		my %foundZMM_h;
 		foreach my $line (@output) {
 			$line =~ s/^\s+|\s+$//g;
-			if($line =~ /^(Controller Cache Backup)/){
+			if($line =~ /^(Controller Cache Backup)/ || $line =~ /^(Controller ZMM Information)/){
 				$currBlock = $1;
 				next;
 			}
@@ -518,9 +518,16 @@ sub getZMMStatus {
 		}
 		if(exists($foundZMM_h{'Overall Backup Unit Status'})){
 			if($foundZMM_h{'Overall Backup Unit Status'} ne 'Ready'){
-				$status = 'Warning' unless $status eq 'Critical';
-				push @{$statusLevel_a[1]}, 'ZMM_State';
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, 'ZMM_State';
 				$statusLevel_a[3]->{'ZMM_State'} = $foundZMM_h{'Overall Backup Unit Status'};
+			}
+		}
+		elsif(exists($foundZMM_h{'Status'})){
+			if($foundZMM_h{'Status'} ne 'Ready'){
+				$status = 'Critical';
+				push @{$statusLevel_a[2]}, 'ZMM_State';
+				$statusLevel_a[3]->{'ZMM_State'} = $foundZMM_h{'Status'};
 			}
 		}
 		if(exists($foundZMM_h{'Non-Volatile Storage Status'})){
