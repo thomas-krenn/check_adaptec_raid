@@ -33,7 +33,6 @@ our $C_TEMP_CRITICAL = 90;
 our $ZMM_TEMP_WARNING = 60;
 our $ZMM_TEMP_CRITICAL = 75;
 our $CONTROLLER = 1;
-our $EXITSTATUS = 0;
 
 use constant {
 	STATE_OK => 0,
@@ -41,20 +40,6 @@ use constant {
 	STATE_CRITICAL => 2,
 	STATE_UNKNOWN => 3,
 };
-
-# Returns StatusCode 0,1,2,3
-sub myStatus {
-	my $prevStatus = $_[0];
-	my $nextStatus = $_[1];
-	my $returnStatus = STATE_OK;
-	if($prevStatus >= $nextStatus) {
-		$returnStatus = $prevStatus;
-	} else {
-		$returnStatus = $nextStatus;
-	}
-
-	return $returnStatus;
-}
 
 # Explains the Usage of the plugin, also which options take which values
 sub displayUsage {
