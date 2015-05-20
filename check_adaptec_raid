@@ -641,6 +641,76 @@ sub checkThreshs{
 	return 1;
 }
 
+# Get the status string as plugin output
+# @param level The desired level to get the status string for. Either 'Warning'
+# or 'Critical'.
+# @param statusLevel_a The status level array, elem 0 is the current status,
+# elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
+# information for the sensors, elem 4 the used storcli commands.
+# @return The created status string
+sub getStatusString{
+	my $level = shift;
+	my @statusLevel_a = @{(shift)};
+	my @sensors_a;
+	my $status_str = '';
+	if($level eq "Warning"){
+		@sensors_a = @{$statusLevel_a[1]};
+	}
+	if($level eq "Critical"){
+		@sensors_a = @{$statusLevel_a[2]};
+	}
+	my $parts = '';
+	# level comes from the method call, not the real status level
+	# level is used here, to call status check only once
+	if($level eq "Critical"){
+		my @keys = ('CTR_Status','LD_Status','PD_Status','ZMM_Status');
+		# Check which parts where checked
+		foreach my $key (@keys){
+			$key =~ /^([A-Z]+)\_.*$/;
+			my $part = $1;
+			if(${$statusLevel_a[0]} eq 'OK'){
+				if(exists($statusLevel_a[3]->{$key}) && $statusLevel_a[3]->{$key} eq 'OK'){
+					$parts .= ", " unless $parts eq '';
+					$parts .= $part;
+				}
+			}
+			else{
+				if(exists($statusLevel_a[3]->{$key}) && $statusLevel_a[3]->{$key} ne 'OK'){
+					$parts .= ", " unless $parts eq '';
+					$parts .= $part;
+					# Only add the first 4 chars, Warn or Crit
+					$parts .= ' '.substr($statusLevel_a[3]->{$key}, 0, 4);
+				}
+			}
+		}
+		$status_str.= '(';
+		$status_str .= $parts unless !defined($parts);
+		$status_str.= ')';
+	}
+	if($level eq 'Critical'){
+		$status_str.= ' ' unless !(@sensors_a);
+	}
+	# Add a space only if there are no Critical sensors
+	if($level eq 'Warning' && !@{$statusLevel_a[2]}){
+		$status_str.= ' ' unless !(@sensors_a);
+	}
+	if($level eq "Warning" || $level eq "Critical"){
+		if(@sensors_a){
+			# Print which sensors are Warn or Crit
+			foreach my $sensor (@sensors_a){
+				$status_str .= "[".$sensor." = ".$level;
+				if($VERBOSITY){
+					if(exists($statusLevel_a[3]->{$sensor})){
+						$status_str .= " (".$statusLevel_a[3]->{$sensor}.")";
+					}
+				}
+				$status_str .= "]";
+			}
+		}
+	}
+	return $status_str;
+}
+
 MAIN: {
 	my ($arcconf, $sudo, $noSudo, $version, $exitCode);
 	# Create default sensor arrays and push them to status level
@@ -741,6 +811,10 @@ MAIN: {
 	getControllerStatus(\@statusLevel_a, $controllerToCheck);
 	getLDStatus(\@statusLevel_a, $LDDevicesToCheck);
 	getPDStatus(\@statusLevel_a, $PDDevicesToCheck);
+	
+	print ${$statusLevel_a[0]}." ";
+	print getStatusString("Critical",\@statusLevel_a);
+	print getStatusString("Warning",\@statusLevel_a);
 	
 	use Data::Dumper;
 	print Dumper($controllerToCheck);
