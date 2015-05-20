@@ -202,7 +202,7 @@ sub getControllerInfo{
 sub getControllerStatus{
 	my @statusLevel_a = @{(shift)};
 	my %foundController = %{(shift)};
-	my $status;
+	my $status = '';
 	foreach my $key (%foundController){
 		if($key eq 'Temperature'){
 			$foundController{$key} =~ /^([0-9]+\.?[0-9]+) C/;
@@ -243,7 +243,7 @@ sub getControllerStatus{
 			}
 		}
 	}
-	if(defined($status)){
+	if($status ne ''){
 		if($status eq 'Warning'){
 			if(${$statusLevel_a[0]} ne 'Critical'){
 				${$statusLevel_a[0]} = 'Warning';
@@ -331,7 +331,7 @@ sub getLogicalDevices{
 sub getLDStatus{
 	my @statusLevel_a = @{(shift)};
 	my @foundLDs = @{(shift)};
-	my $status;
+	my $status = '';
 	foreach my $LD (@foundLDs){
 		if(exists($LD->{'Status of logical device'})){
 			if($LD->{'Status of logical device'} ne 'Optimal'){
@@ -348,7 +348,7 @@ sub getLDStatus{
 			}
 		}
 	}
-	if(defined($status)){
+	if($status ne ''){
 		if($status eq 'Warning'){
 			if(${$statusLevel_a[0]} ne 'Critical'){
 				${$statusLevel_a[0]} = 'Warning';
@@ -444,7 +444,7 @@ sub getPhysicalDevices{
 sub getPDStatus{
 	my @statusLevel_a = @{(shift)};
 	my @foundPDs = @{(shift)};
-	my $status;
+	my $status = '';
 	foreach my $PD (@foundPDs){
 		if(exists($PD->{'State'})){
 			if(!($PD->{'State'} =~ /^(Online|Global Hot-Spare|Dedicated Hot-Spare|Hot Spare|Ready|Online \(JBOD\))$/)){
@@ -482,7 +482,7 @@ sub getPDStatus{
 			}
 		}
 	}
-	if(defined($status)){
+	if($status ne ''){
 		if($status eq 'Warning'){
 			if(${$statusLevel_a[0]} ne 'Critical'){
 				${$statusLevel_a[0]} = 'Warning';
@@ -515,7 +515,7 @@ sub getZMMStatus {
 	my $command = "$arcconf GETCONFIG $CONTROLLER AD";
 	push @{$commands_a}, $command;
 
-	my $status;
+	my $status = '';
 	my @output = `$command`;
 	if(checkCommandStatus(\@output, $?)) {
 		my $currBlock;
@@ -587,7 +587,7 @@ sub getZMMStatus {
 			$foundZMM_h{'Charge Level'} =~ /(^[0-9]+) percent/;
 			$statusLevel_a[3]->{'ZMM_Charge_Level'} = $1;
 		}
-		if(defined($status)){
+		if($status ne ''){
 			if($status eq 'Warning'){
 				if(${$statusLevel_a[0]} ne 'Critical'){
 					${$statusLevel_a[0]} = 'Warning';
