@@ -668,7 +668,7 @@ sub checkThreshs{
 # or 'Critical'.
 # @param statusLevel_a The status level array, elem 0 is the current status,
 # elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
-# information for the sensors, elem 4 the used storcli commands.
+# information for the sensors, elem 4 the used arcconf commands.
 # @return The created status string
 sub getStatusString{
 	my $level = shift;
