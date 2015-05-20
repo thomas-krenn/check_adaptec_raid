@@ -1,5 +1,5 @@
                             check_adaptec_raid
-                            ==============
+                            ==================
 
  check_adaptec_raid: Nagios/Icinga plugin to check Adaptec Raid Controller status
 
