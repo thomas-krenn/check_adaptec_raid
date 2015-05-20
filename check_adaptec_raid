@@ -876,7 +876,9 @@ MAIN: {
 				print "Error: cannot find sudo executable.\n";
 				exit(STATE_UNKNOWN);
 			}
-			$arcconf = $sudo.' '.$arcconf;
+			if($> != 0){
+				$arcconf = $sudo.' '.$arcconf;
+			}
 		}
 	}
 	# Print arcconf version if available
