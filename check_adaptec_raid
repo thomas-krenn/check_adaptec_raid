@@ -30,8 +30,6 @@ our $VERSION = '2.0';
 our $NAME = "check_adaptec_raid: Nagios/Icinga plugin to check Adaptec Raid Controller status";
 our $C_TEMP_WARNING = 80;
 our $C_TEMP_CRITICAL = 90;
-our $PD_TEMP_WARNING = 40;
-our $PD_TEMP_CRITICAL = 45;
 our $ZMM_TEMP_WARNING = 60;
 our $ZMM_TEMP_CRITICAL = 75;
 our $CONTROLLER = 1;
@@ -711,6 +709,29 @@ sub getStatusString{
 	return $status_str;
 }
 
+# Get the performance string for the current check. The values are taken from
+# the varbose hash in the status level array.
+# @param statusLevel_a The current status level array
+# @return The created performance string
+sub getPerfString{
+	my @statusLevel_a = @{(shift)};
+	my %verboseValues_h = %{$statusLevel_a[3]};
+	my $perf_str;
+	foreach my $key (sort (keys(%verboseValues_h))){
+		if($key =~ /temperature/i || $key =~ /ZMM_Health$/ || $key =~ /ZMM_Voltage_Present$/){
+			$perf_str .= ' ' unless !defined($perf_str);
+			$perf_str .= $key.'='.$verboseValues_h{$key};
+		}
+		if($key =~ /CTR_Temperature$/){
+			$perf_str .= ';'.$C_TEMP_WARNING.';'.$C_TEMP_CRITICAL;
+		}
+		elsif($key =~ /ZMM_Temperature$/){
+			$perf_str .= ';'.$ZMM_TEMP_WARNING.';'.$ZMM_TEMP_CRITICAL;
+		}
+	}
+	return $perf_str;
+}
+
 MAIN: {
 	my ($arcconf, $sudo, $noSudo, $version, $exitCode);
 	# Create default sensor arrays and push them to status level
@@ -742,8 +763,6 @@ MAIN: {
 		'PD|physicaldevice=s' => \@physDevices,
 		'Tw|temperature-warn=s' => \$C_TEMP_WARNING,
 		'Tc|temperature-critical=s' => \$C_TEMP_CRITICAL,
-		'PDTw|physicaldevicetemperature-warn=s' => \$PD_TEMP_WARNING,
-		'PDTc|physicaldevicetemperature-critical=s' => \$PD_TEMP_CRITICAL,
 		'p|path=s' => \$arcconf,
 		'z|ZMM=i' => \$zmm,
 		'nosudo' => \$noSudo,
@@ -815,6 +834,22 @@ MAIN: {
 	print ${$statusLevel_a[0]}." ";
 	print getStatusString("Critical",\@statusLevel_a);
 	print getStatusString("Warning",\@statusLevel_a);
+		my $perf_str = getPerfString(\@statusLevel_a);
+	if($perf_str){
+		print "|".$perf_str;
+	}
+#	if($VERBOSITY == 2 || $VERBOSITY == 3){
+#		print "\n".getVerboseString(\@statusLevel_a, $controllerToCheck, $LDDevicesToCheck, $LDInitToCheck,
+#		$PDDevicesToCheck, $PDInitToCheck, $PDRebuildToCheck)
+#	}
+	$exitCode = STATE_OK;
+	if(${$statusLevel_a[0]} eq "Critical"){
+		$exitCode = STATE_CRITICAL;
+	}
+	if(${$statusLevel_a[0]} eq "Warning"){
+		$exitCode = STATE_WARNING;
+	}
+	#exit($exitCode);
 	
 	use Data::Dumper;
 	print Dumper($controllerToCheck);
