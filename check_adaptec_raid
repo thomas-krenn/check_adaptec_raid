@@ -86,21 +86,28 @@ sub displayUsage {
 
 # Displays a short Help text for the user
 sub displayHelp {
-	print $NAME . " Version: " . $VERSION ."\n";
-	print "Copyright (C) 2009-2013 Thomas-Krenn.AG\n";
-	print "Current updates available via git at:\n  http://git.thomas-krenn.com/check_adaptec_raid.git\n";
-	print "This Nagios/Icinga Plugin checks ADAPTEC RAID-Controllers for Controller, \nPhysical-Device and Logical Device warnings and errors. \n";
-	print "In order for this plugin to work properly you need to add the \nnagios-user to your sudoers file (or create a new one in /etc/sudoers.d/).\n";
-	print "This is required as arcconf must be called with sudo permissions.\n";
+	print $NAME."\n";
+	print "Pulgin version: " . $VERSION ."\n";
+	print "Copyright (C) 2013-2015 Thomas-Krenn.AG\n";
+	print "Current updates available at
+    http://git.thomas-krenn.com/check_adaptec_raid.git\n";
+	print "This Nagios/Icinga Plugin checks Adaptec RAID controllers for controller,
+physical device, logical device and ZMM warnings and errors.\n";
+	print "In order for this plugin to work properly you need to add the nagios
+user to your sudoers file (or create a new one in /etc/sudoers.d/). Be aware
+that arcconf requires root privileges.\n";
 	displayUsage();
 	print "Further information about this plugin can be found at:
-  http://www.thomas-krenn.com/de/wiki/Adaptec_RAID_Monitoring_Plugin and
-  http://www.thomas-krenn.com/de/wiki/Adaptec_RAID_Monitoring_Plugin
+    https://www.thomas-krenn.com/de/wiki/Adaptec_RAID_Monitoring_Plugin and
+    https://www.thomas-krenn.com/en/wiki/Adaptec_RAID_Monitoring_Plugin
 Please send an email to the tk-monitoring plugin-user mailing list:
-  tk-monitoring-plugins-user\@lists.thomas-krenn.com
-if you have questions regarding the use of this software, to submit patches, or
+    tk-monitoring-plugins-user\@lists.thomas-krenn.com
+if you have questions regarding use of this software, to submit patches, or
 suggest improvements. The mailing list archive is available at:
-  http://lists.thomas-krenn.com/pipermail/tk-monitoring-plugins-user\n";
+    http://lists.thomas-krenn.com/pipermail/tk-monitoring-plugins-user
+Example usage:
+* check_adaptec_raid -p /sbin/arcconf
+* check_adaptec_raid -p /sbin/arcconf -C 2\n";
 	exit(STATE_UNKNOWN);
 }
 
