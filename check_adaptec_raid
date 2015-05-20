@@ -709,6 +709,88 @@ sub getStatusString{
 	return $status_str;
 }
 
+# Get the verbose string if a higher verbose level is used
+# @param statusLevel_a The status level array, elem 0 is the current status,
+# elem 1 the warning sensors, elem 2 the critical sensors, elem 3 the verbose
+# information for the sensors, elem 4 the used arcconf commands.
+# @param controllerToCheck Controller parsed by getControllerInfo
+# @param LDDevicesToCheck LDs parsed by getLogicalDevices
+# @param PDDevicesToCheck PDs parsed by getPhysicalDevices
+# @return The created verbosity string
+sub getVerboseString{
+	my @statusLevel_a = @{(shift)};
+	my %controllerToCheck = %{(shift)};
+	my @LDDevicesToCheck = @{(shift)};
+	my @PDDevicesToCheck = @{(shift)};
+	my @sensors_a;
+	my $verb_str;
+	
+	$verb_str .= "Used arcconf commands:\n";
+	foreach my $cmd (@{$statusLevel_a[4]}){
+		$verb_str .= '- '.$cmd."\n";
+	}
+	if(${$statusLevel_a[0]} eq 'Critical'){
+		$verb_str .= "Critical sensors:\n";
+		foreach my $sensor (@{$statusLevel_a[2]}){
+			$verb_str .= "\t- ".$sensor;
+			if(exists($statusLevel_a[3]->{$sensor})){
+				$verb_str .= ' ('.$statusLevel_a[3]->{$sensor}.')';
+			}
+			$verb_str .= "\n";
+		}
+		
+	}
+	# Warning sensors are printed at Crit and Warn level
+	if(${$statusLevel_a[0]} ne 'OK'){
+		$verb_str .= "Warning sensors:\n";
+		foreach my $sensor (@{$statusLevel_a[1]}){
+			$verb_str .= "\t- ".$sensor;
+			if(exists($statusLevel_a[3]->{$sensor})){
+				$verb_str .= ' ('.$statusLevel_a[3]->{$sensor}.')';
+			}
+			$verb_str .= "\n";
+		}
+		
+	}
+	if($VERBOSITY == 3){
+		$verb_str .= "CTR information:\n";
+		$verb_str .= "\t- ".$controllerToCheck{'Controller Model'}.":\n";
+		$verb_str .= "\t\t- ".'Serial No='.$controllerToCheck{'Controller Serial Number'}."\n";
+		$verb_str .= "\t\t- ".'FW Package Build='.$controllerToCheck{'FW Package Build'}."\n";
+		$verb_str .= "\t\t- ".'Driver='.$controllerToCheck{'Driver'}."\n";
+		$verb_str .= "\t\t- ".'Boot Flash='.$controllerToCheck{'Boot Flash'}."\n";
+		$verb_str .= "\t\t- ".'BIOS Version='.$controllerToCheck{'BIOS'}."\n";
+		$verb_str .= "\t\t- ".'FW Version='.$controllerToCheck{'Firmware'}."\n";
+		$verb_str .= "\t\t- ".'Temperature='.$controllerToCheck{'Temperature'}."\n";
+		$verb_str .= "\t\t- ".'Defunct drives='.$controllerToCheck{'Defunct disk drive count'}."\n";
+		$verb_str .= "\t\t- ".'LD devices/Failed/Degraded='.$controllerToCheck{'Logical devices/Failed/Degraded'}."\n";
+		$verb_str .= "LD information:\n";
+		foreach my $LD (@LDDevicesToCheck){
+			$verb_str .= "\t- ".$LD->{'ld'}.":\n";
+			foreach my $key (sort (keys(%{$LD}))){
+				$verb_str .= "\t\t- ".$key.'='.$LD->{$key}."\n";
+			}
+		}
+		$verb_str .= "PD information:\n";
+		foreach my $PD (@PDDevicesToCheck){
+			$verb_str .= "\t- ".$PD->{'pd'}.":\n";
+			foreach my $key (sort (keys(%{$PD}))){
+				$verb_str .= "\t\t- ".$key.'='.$PD->{$key}."\n";
+			}
+		}
+		if(exists($statusLevel_a[3]->{'ZMM_Status'})){
+			my $type = 'ZMM';
+			$verb_str .= $type." information:\n";
+			foreach my $stat (sort (keys(%{$statusLevel_a[3]}))){
+				if($stat =~ /^$type.+$/){
+					$verb_str .= "\t\t- $stat=".$statusLevel_a[3]->{$stat}."\n";
+				}
+			}
+		}
+	}
+	return $verb_str;
+}
+
 # Get the performance string for the current check. The values are taken from
 # the varbose hash in the status level array.
 # @param statusLevel_a The current status level array
@@ -838,10 +920,10 @@ MAIN: {
 	if($perf_str){
 		print "|".$perf_str;
 	}
-#	if($VERBOSITY == 2 || $VERBOSITY == 3){
-#		print "\n".getVerboseString(\@statusLevel_a, $controllerToCheck, $LDDevicesToCheck, $LDInitToCheck,
-#		$PDDevicesToCheck, $PDInitToCheck, $PDRebuildToCheck)
-#	}
+	if($VERBOSITY == 2 || $VERBOSITY == 3){
+		print "\n".getVerboseString(\@statusLevel_a, $controllerToCheck,
+		$LDDevicesToCheck, $PDDevicesToCheck)
+	}
 	$exitCode = STATE_OK;
 	if(${$statusLevel_a[0]} eq "Critical"){
 		$exitCode = STATE_CRITICAL;
@@ -849,51 +931,5 @@ MAIN: {
 	if(${$statusLevel_a[0]} eq "Warning"){
 		$exitCode = STATE_WARNING;
 	}
-	#exit($exitCode);
-	
-	use Data::Dumper;
-	print Dumper($controllerToCheck);
-	print Dumper($LDDevicesToCheck);
-	print Dumper($PDDevicesToCheck);
-	print Dumper($statusLevel_a[0]);
-	print Dumper($statusLevel_a[1]);
-	print Dumper($statusLevel_a[2]);
-	print Dumper($statusLevel_a[3]);
-	print Dumper($verboseCommands_a);
-#	# check given thresholds
-#	if(@temperature_c && !@temperature_w){
-#		print "Please also specify warning threshold!\n";
-#		displayUsage();
-#		exit(STATE_UNKNOWN);
-#	}
-#	@temperature_w = getThresholds(\@temperature_w, 70);
-#	@temperature_c = getThresholds(\@temperature_c, 75);
-#	
-#	# Input validation
-#	my @controllerVersion = `$sudo $arcconf GETVERSION $controller`;
-#	if($controllerVersion[1] eq "Invalid controller number.") {
-#		print "Invalid controller number, device not found!";
-#		exit(STATE_UNKNOWN);
-#	}
-#	if($zmm != 1 && $zmm != 0) {
-#		print "Invalid ZMM parameter, must be 0 or 1!";
-#		exit(STATE_UNKNOWN);
-#	}
-#
-#	# Set exit status
-#	my $newExitStatus = 0;
-#	my $newStatusMessage = '';
-#	($newExitStatus, $statusMessage) = getControllerCfg($sudo, $arcconf, $controller, \@temperature_w, \@temperature_c, $zmm);
-#	$newStatusMessage .= $statusMessage;
-#	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-#	($newExitStatus, $statusMessage) = getPhysDevCfg($sudo, $arcconf, $controller, $physDevices);
-#	$newStatusMessage .= $statusMessage;
-#	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-#	($newExitStatus, $statusMessage) = getLogDevCfg($sudo, $arcconf, $controller, $logDevices);
-#	$newStatusMessage .= $statusMessage;
-#	$EXITSTATUS = myStatus($newExitStatus, $EXITSTATUS);
-#	if($EXITSTATUS == 0) { print "AACRAID OK (Ctrl #$controller)\n"; }
-#	elsif($EXITSTATUS == 1) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID WARNING (Ctrl #$controller): [$newStatusMessage]\n"; }
-#	elsif($EXITSTATUS ==2) { if($VERBOSITY eq 0) { chop($newStatusMessage); chop($newStatusMessage); } print "AACRAID CRITICAL (Ctrl #$controller): [$newStatusMessage]\n"; }
-	exit($EXITSTATUS);
+	exit($exitCode);
 }
