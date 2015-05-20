@@ -269,7 +269,7 @@ sub getLogicalDevices{
 		foreach my $line(@output){
 			my @splittedLine;
 			if($line =~ /^Logical device number ([0-9]+)$/){
-				if(!@logDevices || !(exists $usedLD_h{$1})){
+				if(!@logDevices || exists $usedLD_h{$1}){
 					$currBlock = "ld".$1;
 					$line_ref = {};
 					next;
@@ -376,7 +376,7 @@ sub getPhysicalDevices{
 		foreach my $line(@output){
 			my @splittedLine;
 			if($line =~ /^\s+Device \#([0-9]+)$/){
-				if(!@physDevices || !(exists $usedPD_h{$1})){
+				if(!@physDevices || exists $usedPD_h{$1}){
 					$currBlock = "pd".$1;
 					$line_ref = {};
 					next;
