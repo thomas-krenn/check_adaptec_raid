@@ -405,7 +405,7 @@ sub getPhysicalDevices{
 		print "Invalid arcconf command! ($command)\n";
 		exit(STATE_UNKNOWN);
 	}
-	# Check if all user defined LDs were found
+	# Check if all user defined PDs were found
 	if(@physDevices && (scalar(@foundDevs) != scalar(@physDevices))){
 		print "Invalid physical device(s) specified!\n";
 		exit(STATE_UNKNOWN);
