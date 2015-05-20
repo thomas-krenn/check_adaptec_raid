@@ -71,17 +71,17 @@ sub displayUsage {
     Specifies the RAID controller temperature critical threshold, the default
     threshold is ${C_TEMP_CRITICAL}C.\n";
 	print "  [ -ZMMTw <temp> | --zmmtemperature-warning <temp> ]
-    Specifies the BBU temperature warning threshold, default threshold 
+    Specifies the ZMM temperature warning threshold, default threshold 
     is ${ZMM_TEMP_WARNING}C.\n";
 	print "  [ -ZMMTc <temp> | --zmmtemperature-critical <temp> ]
-    Specifies the BBU temperature critical threshold, default threshold 
+    Specifies the ZMM temperature critical threshold, default threshold 
     is ${ZMM_TEMP_CRITICAL}C.\n";
 	print "  [ -p <path> | --path <path>]
     Specifies the path to arcconf, per default uses the tool 'which' to get 
     the arcconf path.\n";
 	print "  [ -z <0/1> | --ZMM <0/1> ]
     Check if a ZMM is present unless '-z 0' is defined. This ensures that for a
-    given controller a BBU/CV must be present per default.\n";
+    given controller a ZMM must be present per default.\n";
 }
 
 # Displays a short Help text for the user
