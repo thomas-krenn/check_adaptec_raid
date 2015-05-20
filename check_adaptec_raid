@@ -41,22 +41,47 @@ use constant {
 	STATE_UNKNOWN => 3,
 };
 
-# Explains the Usage of the plugin, also which options take which values
+# Print command line usage to stdout.
 sub displayUsage {
 	print "Usage: \n";
-	print "  [ -C <Controller number> ] [ -LD <Logical device number> ]\n";
-	print "  [ -PD <Physical device number> ] [ -T <Warning Temp., Crit. Temp.> ]\n";
-	print "  [ -h | --help ]\n	Display this help page\n";
-	print "  [ -v | -vv | -vvv | --verbose ]\n	Sets the verbosity level\n	no -v single line output for Nagios/Icinga\n	-v   single line with more details\n	-vv  multiline output for debugging errors and more detailed information\n	-vvv is for plugin problem diagnosis\n";
-	print "  [ -V --version ]\n	Displays the Version of the tk-adaptec-plugin and the version of arcconf\n";
-	print "  [ -C <Controller Number> | --controller <Controller Number> ]\n	Specifies a Controller number, (Default 1).\n";
-	print "  [ -LD | --logicaldevice <Log. device number> ]\n	Specifies one or more Logical Devices to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
-	print "  [ -PD | --physicaldevice <Phys. device number> ]\n	Specifies one or more Physical Devices to monitor.\n	Accepts a positive Integer or a comma seperated list as additional argument\n	(Default all)\n";
-	print "  [ -Tw | --temperature-warn ]\n	Specifies the RAID-Controller temperature warning range, default is 70 C or more.\n";
-	print "  [ -Tc | --temperature-crit ]\n	Specifies the RAID-Controller temperature critical error range, default is 75 C or more.
-	Requires Temperature Warning [-Tw|--temperature-warning] to be set.\n";
-	print "  [ -p <path> | --path <path>]\n	Specifies the path to arcconf.\n	Default is /usr/bin/arcconf  C:\\Programme\\Adaptec\\RemoteArcconf\\arcconf.exe\n";
-	print "  [ -z <0/1> | ZMM <0/1> ]\n	Boolean Value which specifies if a Zero-Maintenance Module is available\n	(1 is available, 0 is not available). (Default 1)\n	This option is required if you have an Adaptec Raid Controller without a ZMM.\n\n";
+	print "  [ -h | --help ]
+    Display this help page\n";
+	print "  [ -v | -vv | -vvv | --verbose ]
+    Sets the verbosity level.
+    No -v is the normal single line output for Nagios/Icinga, -v is a
+    more detailed version but still usable in Nagios. -vv is a
+    multiline output for debugging configuration errors or more
+    detailed information. -vvv is for plugin problem diagnosis.
+    For further information please visit:
+        http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN39\n";
+	print "  [ -V --version ]
+    Displays the plugin and, if available, the version of arcconf.\n";
+	print "  [ -C <num> | --controller <num> ]
+    Specifies a controller number, defaults to 1.\n";
+	print "  [ -LD <ids> | --logicaldevice <ids>]
+    Specifies one or more logical devices, defaults to all. Takes either an
+    integer as additional argument or a comma seperated list e.g. '0,1,2'.\n";
+	print "  [ -PD <ids> | --physicaldevice <ids> ]
+    Specifies one or more physical devices, defaults to all. Takes either an
+    integer as additional argument or a comma seperated list e.g. '0,1,2'.\n";
+	print "  [ -Tw <temp> | --temperature-warn <temp> ]
+    Specifies the RAID controller temperature warning threshold, the default
+    threshold is ${C_TEMP_WARNING}C.\n";
+	print "  [ -Tc <temp> | --temperature-critical <temp> ]
+    Specifies the RAID controller temperature critical threshold, the default
+    threshold is ${C_TEMP_CRITICAL}C.\n";
+	print "  [ -ZMMTw <temp> | --zmmtemperature-warning <temp> ]
+    Specifies the BBU temperature warning threshold, default threshold 
+    is ${ZMM_TEMP_WARNING}C.\n";
+	print "  [ -ZMMTc <temp> | --zmmtemperature-critical <temp> ]
+    Specifies the BBU temperature critical threshold, default threshold 
+    is ${ZMM_TEMP_CRITICAL}C.\n";
+	print "  [ -p <path> | --path <path>]
+    Specifies the path to arcconf, per default uses the tool 'which' to get 
+    the arcconf path.\n";
+	print "  [ -z <0/1> | --ZMM <0/1> ]
+    Check if a ZMM is present unless '-z 0' is defined. This ensures that for a
+    given controller a BBU/CV must be present per default.\n";
 }
 
 # Displays a short Help text for the user
