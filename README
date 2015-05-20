@@ -80,8 +80,8 @@
 * libfile-which-perl
 * arcconf
 
-Requirements for Icinga/Nagios:
--------------
+ Requirements for Icinga/Nagios:
+ -------------
 * On the system to be monitored:
 ** check_adaotec_raid plugin
 ** arcconf
