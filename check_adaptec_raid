@@ -70,7 +70,7 @@ sub displayUsage {
 	print "  [ -Tc <temp> | --temperature-critical <temp> ]
     Specifies the RAID controller temperature critical threshold, the default
     threshold is ${C_TEMP_CRITICAL}C.\n";
-	print "  [ -ZMMTw <temp> | --zmmtemperature-warning <temp> ]
+	print "  [ -ZMMTw <temp> | --zmmtemperature-warn <temp> ]
     Specifies the ZMM temperature warning threshold, default threshold 
     is ${ZMM_TEMP_WARNING}C.\n";
 	print "  [ -ZMMTc <temp> | --zmmtemperature-critical <temp> ]
@@ -871,6 +871,8 @@ MAIN: {
 		'PD|physicaldevice=s' => \@physDevices,
 		'Tw|temperature-warn=s' => \$C_TEMP_WARNING,
 		'Tc|temperature-critical=s' => \$C_TEMP_CRITICAL,
+		'ZMMTw|zmmtemperature-warn=s' => \$C_TEMP_WARNING,
+		'ZMMTc|zmmtemperature-critical=s' => \$C_TEMP_CRITICAL,
 		'p|path=s' => \$arcconf,
 		'z|ZMM=i' => \$zmm,
 		'nosudo' => \$noSudo,
