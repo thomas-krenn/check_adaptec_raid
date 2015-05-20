@@ -193,7 +193,7 @@ sub getControllerStatus{
 					push @{$statusLevel_a[2]}, 'CTR_Temperature';
 				}
 				elsif(!(checkThreshs($1, $C_TEMP_WARNING))){
-					$status = 'Warning';
+					$status = 'Warning' unless $status eq 'Critical';
 					push @{$statusLevel_a[1]}, 'CTR_Temperature';
 				}
 				$statusLevel_a[3]->{'CTR_Temperature'} = $1;
@@ -314,7 +314,7 @@ sub getLDStatus{
 	my @foundLDs = @{(shift)};
 	my $status;
 	foreach my $LD (@foundLDs){
-		if(exists($LD->{'State'})){
+		if(exists($LD->{'Status of logical device'})){
 			if($LD->{'Status of logical device'} ne 'Optimal'){
 				$status = 'Critical';
 				push @{$statusLevel_a[2]}, $LD->{'ld'}.'_State';
@@ -323,7 +323,7 @@ sub getLDStatus{
 		}
 		if(exists($LD->{'Failed stripes'})){
 			if($LD->{'Failed stripes'} ne 'No'){
-				$status = 'Warning';
+				$status = 'Warning' unless $status eq 'Critical';
 				push @{$statusLevel_a[1]}, $LD->{'ld'}.'_Failed_Stripes';
 				$statusLevel_a[3]->{$LD->{'ld'}.'_Failed_Stripes'} = $LD->{'Failed stripes'};
 			}
@@ -396,7 +396,7 @@ sub getPhysicalDevices{
 					next;
 				}
 				#If the last value is parsed, reset block
-				if(exists($line_ref->{'NCQ status'})){
+				if(exists($line_ref->{'NCQ status'}) || exists($line_ref->{'MaxIQ Cache Assigned'})){
 					$line_ref->{'pd'} = $currBlock;
 					push @foundDevs, $line_ref;
 					undef $currBlock;
@@ -443,7 +443,7 @@ sub getPDStatus{
 		}
 		if(exists($PD->{'S.M.A.R.T. warnings'})){
 			if($PD->{'S.M.A.R.T. warnings'} ne '0'){
-				$status = 'Warning';
+				$status = 'Warning' unless $status eq 'Critical';
 				push @{$statusLevel_a[1]}, $PD->{'pd'}.'_SMART_warnings';
 				$statusLevel_a[3]->{$PD->{'pd'}.'_SMART_warnings'} = $PD->{'S.M.A.R.T. warnings'};
 			}
@@ -518,21 +518,21 @@ sub getZMMStatus {
 		}
 		if(exists($foundZMM_h{'Overall Backup Unit Status'})){
 			if($foundZMM_h{'Overall Backup Unit Status'} ne 'Ready'){
-				$status = 'Warning';
+				$status = 'Warning' unless $status eq 'Critical';
 				push @{$statusLevel_a[1]}, 'ZMM_State';
 				$statusLevel_a[3]->{'ZMM_State'} = $foundZMM_h{'Overall Backup Unit Status'};
 			}
 		}
 		if(exists($foundZMM_h{'Non-Volatile Storage Status'})){
 			if($foundZMM_h{'Non-Volatile Storage Status'} ne 'Ready'){
-				$status = 'Warning';
+				$status = 'Warning' unless $status eq 'Critical';
 				push @{$statusLevel_a[1]}, 'ZMM_NVS_Status';
 				$statusLevel_a[3]->{'ZMM_NVS_Status'} = $foundZMM_h{'Non-Volatile Storage Status'};
 			}
 		}
 		if(exists($foundZMM_h{'Supercap Status'})){
 			if($foundZMM_h{'Supercap Status'} ne 'Ready'){
-				$status = 'Warning';
+				$status = 'Warning' unless $status eq 'Critical';
 				push @{$statusLevel_a[1]}, 'ZMM_SCap_Status';
 				$statusLevel_a[3]->{'ZMM_SCap_Status'} = $foundZMM_h{'Supercap Status'};
 			}
@@ -544,7 +544,7 @@ sub getZMMStatus {
 				push @{$statusLevel_a[2]}, 'ZMM_Temperature';
 			}
 			elsif(!(checkThreshs($1, $ZMM_TEMP_WARNING))){
-				$status = 'Warning';
+				$status = 'Warning' unless $status eq 'Critical';
 				push @{$statusLevel_a[1]}, 'ZMM_Temperature';
 			}
 			$statusLevel_a[3]->{'ZMM_Temperature'} = $1;
@@ -756,7 +756,9 @@ sub getVerboseString{
 		$verb_str .= "CTR information:\n";
 		$verb_str .= "\t- ".$controllerToCheck{'Controller Model'}.":\n";
 		$verb_str .= "\t\t- ".'Serial No='.$controllerToCheck{'Controller Serial Number'}."\n";
-		$verb_str .= "\t\t- ".'FW Package Build='.$controllerToCheck{'FW Package Build'}."\n";
+		if(exists $controllerToCheck{'FW Package Build'}){
+			$verb_str .= "\t\t- ".'FW Package Build='.$controllerToCheck{'FW Package Build'}."\n";
+		}
 		$verb_str .= "\t\t- ".'Driver='.$controllerToCheck{'Driver'}."\n";
 		$verb_str .= "\t\t- ".'Boot Flash='.$controllerToCheck{'Boot Flash'}."\n";
 		$verb_str .= "\t\t- ".'BIOS Version='.$controllerToCheck{'BIOS'}."\n";
