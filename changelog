@@ -4,7 +4,7 @@ controllers
 ###############################################################################
 
 Version 2.0 20150611
-  * Completed refactoring of all check methods, the plugin now seperates
+  * Completed refactoring of all check methods, the plugin now separates
     value gathering and status checking.
   * Take a look at the README file to get a complete list of what is checked.
   * Adds controller and ZMM temperature to performance data.
