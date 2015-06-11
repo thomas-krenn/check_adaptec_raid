@@ -543,7 +543,7 @@ sub getZMMStatus {
 			}
 		}
 		elsif(exists($foundZMM_h{'Status'})){
-			if($foundZMM_h{'Status'} ne 'Ready'){
+			if($foundZMM_h{'Status'} ne 'Ready' && $foundZMM_h{'Status'} ne 'ZMM Optimal'){
 				$status = 'Critical';
 				push @{$statusLevel_a[2]}, 'ZMM_State';
 				$statusLevel_a[3]->{'ZMM_State'} = $foundZMM_h{'Status'};
