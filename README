@@ -33,9 +33,8 @@
 
  Current Version:
  ----------------
-* The current version of the check_adaptec_raid plugin is available at the
-  Thomas Krenn git-server:
-  http://git.thomas-krenn.com/check_adaptec_raid.git
+* The current version of the check_adaptec_raid plugin is available at GitHub:
+  https://github.com/thomas-krenn/check_adaptec_raid.git
 
  Further information:
  --------------------
