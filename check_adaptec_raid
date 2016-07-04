@@ -447,7 +447,7 @@ sub getPDStatus{
 	my $status = '';
 	foreach my $PD (@foundPDs){
 		if(exists($PD->{'State'})){
-			if(!($PD->{'State'} =~ /^(Online|Global Hot-Spare|Dedicated Hot-Spare|Hot Spare|Ready|Online \(JBOD\))$/)){
+			if(!($PD->{'State'} =~ /^(Online|Global Hot-Spare|Dedicated Hot-Spare|Hot Spare|Ready|Online \(JBOD\)|Raw \(Pass Through\))$/)){
 				$status = 'Critical';
 				push @{$statusLevel_a[2]}, $PD->{'pd'}.'_State';
 				$statusLevel_a[3]->{$PD->{'pd'}.'_State'} = $PD->{'State'};
