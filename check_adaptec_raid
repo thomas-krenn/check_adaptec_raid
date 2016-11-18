@@ -3,7 +3,7 @@
 # check_adaptec_raid: Nagios/Icinga plugin to check Adaptec Raid Controller
 # status
 # ------------------------------------------------------------------------------
-# Copyright (c) 2013-2015:
+# Copyright (c) 2013-2016:
 #   Georg Schoenberger  (gschoenberger@thomas-krenn.com)
 #   Grubhofer Martin    (s1110239013@students.fh-hagenberg.at)
 #   Franz Nemeth

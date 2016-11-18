@@ -3,7 +3,7 @@
 
  check_adaptec_raid: Nagios/Icinga plugin to check Adaptec Raid Controller status
 
- Copyright (C) 2013-2015 Thomas-Krenn.AG
+ Copyright (C) 2013-2016 Thomas-Krenn.AG
 
  This program is free software; you can redistribute it and/or modify it under
  the terms of the GNU General Public License as published by the Free Software
