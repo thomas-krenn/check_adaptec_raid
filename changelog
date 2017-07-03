@@ -2,6 +2,8 @@
 Changelog for check_adaptec_raid, a Nagios/Icinga plugin to check Adaptec RAID
 controllers
 ###############################################################################
+Version 2.3 20170703
+  * Updated copyright information.
 
 Version 2.2 20161118
   * Modified to exclude RAW devices like SSDs from failed devices.
