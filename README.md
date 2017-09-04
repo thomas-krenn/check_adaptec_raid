@@ -46,6 +46,7 @@
 
 ## Used arcconf commands
 
+* arcconf GETVERSION 1
 * arcconf GETCONFIG 1 AD
 * arcconf GETCONFIG 1 LD
 * arcconf GETCONFIG 1 PD
