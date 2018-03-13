@@ -71,13 +71,13 @@ sub displayUsage {
     Specifies the RAID controller temperature critical threshold, the default
     threshold is ${C_TEMP_CRITICAL}C.\n";
 	print "  [ -ZMMTw <temp> | --zmmtemperature-warn <temp> ]
-    Specifies the ZMM temperature warning threshold, default threshold 
+    Specifies the ZMM temperature warning threshold, default threshold
     is ${ZMM_TEMP_WARNING}C.\n";
 	print "  [ -ZMMTc <temp> | --zmmtemperature-critical <temp> ]
-    Specifies the ZMM temperature critical threshold, default threshold 
+    Specifies the ZMM temperature critical threshold, default threshold
     is ${ZMM_TEMP_CRITICAL}C.\n";
 	print "  [ -p <path> | --path <path>]
-    Specifies the path to arcconf, per default uses the tool 'which' to get 
+    Specifies the path to arcconf, per default uses the tool 'which' to get
     the arcconf path.\n";
 	print "  [ -z <0/1> | --ZMM <0/1> ]
     Check if a ZMM is present unless '-z 0' is defined. This ensures that for a
@@ -273,13 +273,13 @@ sub getLogicalDevices{
 
 	my $command = "$arcconf GETCONFIG $CONTROLLER LD";
 	push @{$commands_a}, $command;
-	
+
 	# Check if a desired list of LDs should be used
 	my %usedLD_h;
 	if(@logDevices){
 		%usedLD_h = map {$_ => 1} @logDevices;
 	}
-	
+
 	my @foundDevs;
 	my @output = `$command`;
 	if(checkCommandStatus(\@output, $?)) {
@@ -287,7 +287,7 @@ sub getLogicalDevices{
 		my $line_ref;
 		foreach my $line(@output){
 			my @splittedLine;
-			if($line =~ /^Logical device number ([0-9]+)$/){
+			if($line =~ /^Logical Device number ([0-9]+)$/){
 				if(!@logDevices || exists $usedLD_h{$1}){
 					$currBlock = "ld".$1;
 					$line_ref = {};
@@ -333,11 +333,11 @@ sub getLDStatus{
 	my @foundLDs = @{(shift)};
 	my $status = '';
 	foreach my $LD (@foundLDs){
-		if(exists($LD->{'Status of logical device'})){
-			if($LD->{'Status of logical device'} ne 'Optimal'){
+		if(exists($LD->{'Status of Logical Device'})){
+			if($LD->{'Status of Logical Device'} ne 'Optimal'){
 				$status = 'Critical';
 				push @{$statusLevel_a[2]}, $LD->{'ld'}.'_State';
-				$statusLevel_a[3]->{$LD->{'ld'}.'_State'} = $LD->{'Status of logical device'};
+				$statusLevel_a[3]->{$LD->{'ld'}.'_State'} = $LD->{'Status of Logical Device'};
 			}
 		}
 		if(exists($LD->{'Failed stripes'})){
@@ -380,13 +380,13 @@ sub getPhysicalDevices{
 
 	my $command = "$arcconf GETCONFIG $CONTROLLER PD";
 	push @{$commands_a}, $command;
-	
+
 	# Check if a desired list of PDs should be used
 	my %usedPD_h;
 	if(@physDevices){
 		%usedPD_h = map {$_ => 1} @physDevices;
 	}
-	
+
 	my @foundDevs;
 	my @output = `$command`;
 	if(checkCommandStatus(\@output, $?)) {
@@ -511,7 +511,7 @@ sub getZMMStatus {
 	my $arcconf = shift;
 	my @statusLevel_a = @{(shift)};
 	my $commands_a = shift;
-	
+
 	my $command = "$arcconf GETCONFIG $CONTROLLER AD";
 	push @{$commands_a}, $command;
 
@@ -750,7 +750,7 @@ sub getVerboseString{
 	my @PDDevicesToCheck = @{(shift)};
 	my @sensors_a;
 	my $verb_str;
-	
+
 	$verb_str .= "Used arcconf commands:\n";
 	foreach my $cmd (@{$statusLevel_a[4]}){
 		$verb_str .= '- '.$cmd."\n";
@@ -764,7 +764,7 @@ sub getVerboseString{
 			}
 			$verb_str .= "\n";
 		}
-		
+
 	}
 	# Warning sensors are printed at Crit and Warn level
 	if(${$statusLevel_a[0]} ne 'OK'){
@@ -776,7 +776,7 @@ sub getVerboseString{
 			}
 			$verb_str .= "\n";
 		}
-		
+
 	}
 	if($VERBOSITY == 3){
 		$verb_str .= "CTR information:\n";
@@ -936,15 +936,15 @@ MAIN: {
 		}
 	}
 	if($zmmPresent == 1){ getZMMStatus($arcconf, \@statusLevel_a, $verboseCommands_a); }
-	
+
 	my $controllerToCheck = getControllerInfo($arcconf, $verboseCommands_a);
 	my $LDDevicesToCheck = getLogicalDevices($arcconf, \@logDevices, $verboseCommands_a);
 	my $PDDevicesToCheck = getPhysicalDevices($arcconf, \@physDevices, $verboseCommands_a);
-	
+
 	getControllerStatus(\@statusLevel_a, $controllerToCheck);
 	getLDStatus(\@statusLevel_a, $LDDevicesToCheck);
 	getPDStatus(\@statusLevel_a, $PDDevicesToCheck);
-	
+
 	print ${$statusLevel_a[0]}." ";
 	print getStatusString("Critical",\@statusLevel_a);
 	print getStatusString("Warning",\@statusLevel_a);
