@@ -21,7 +21,7 @@
   https://www.thomas-krenn.com/de/wiki/Adaptec_RAID_Monitoring_Plugin_unter_Windows_Server_2012_einrichten
 
 ## Mailing List
-* Please add new issues via GitHub at https://github.com/thomas-krenn/check_smart_attributes
+* Please add new issues via GitHub at https://github.com/thomas-krenn/check_adaptec_raid
 * The Thomas-Krenn mailing list archive is at http://lists.thomas-krenn.com/pipermail/tk-monitoring-plugins-user/
 
 ## Functionalities
