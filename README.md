@@ -20,6 +20,10 @@
 * Windows user should read:
   https://www.thomas-krenn.com/de/wiki/Adaptec_RAID_Monitoring_Plugin_unter_Windows_Server_2012_einrichten
 
+## Mailing List
+* Please add new issues via GitHub at https://github.com/thomas-krenn/check_smart_attributes
+* The Thomas-Krenn mailing list archive is at http://lists.thomas-krenn.com/pipermail/tk-monitoring-plugins-user/
+
 ## Functionalities
 
 * Controller Status
@@ -58,7 +62,7 @@
 ## Requirements for Icinga/Nagios
 
 * On the system to be monitored:
-  * check_adaotec_raid plugin
+  * check_adaptec_raid plugin
   * arcconf
   * sudoers entry for user nagios and arcconf
     (example: nagios ALL=(root) NOPASSWD:/sbin/arcconf)
@@ -73,7 +77,7 @@
 
 ## License
 
-Copyright (C) 2013-2017 Thomas-Krenn.AG
+Copyright (C) 2019 Thomas-Krenn.AG
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
