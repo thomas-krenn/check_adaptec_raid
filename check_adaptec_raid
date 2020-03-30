@@ -396,10 +396,21 @@ sub getPhysicalDevices{
 			my @splittedLine;
 			if($line =~ /^\s+Device \#([0-9]+)$/){
 				if(!@physDevices || exists $usedPD_h{$1}){
+					if (defined($currBlock)) { # new group
+						$line_ref->{'pd'} = $currBlock;
+						push @foundDevs, $line_ref;
+						undef $currBlock;
+						undef $line_ref;
+					}
+					#print "inner regex if";
 					$currBlock = "pd".$1;
 					$line_ref = {};
 					next;
 				}
+			} elsif ($line =~ /^\s+Enclosure ID\s+: ([0-9]+)$/) {#If it is an eclosure service device, skip it
+				undef $currBlock;
+				undef $line_ref;
+				next;
 			}
 			if(defined($currBlock)){
 				if($line =~ /\:/){
@@ -408,20 +419,11 @@ sub getPhysicalDevices{
 					$lineVals[1] =~ s/^\s+|\s+$//g;
 					$line_ref->{$lineVals[0]} = $lineVals[1];
 				}
-				#If it is an eclosure service device, skip it
-				if(exists($line_ref->{'Enclosure ID'})){
-					undef $currBlock;
-					undef $line_ref;
-					next;
-				}
-				#If the last value is parsed, reset block
-				if(exists($line_ref->{'NCQ status'}) || exists($line_ref->{'MaxIQ Cache Assigned'})){
-					$line_ref->{'pd'} = $currBlock;
-					push @foundDevs, $line_ref;
-					undef $currBlock;
-					undef $line_ref;
-				}
 			}
+		}
+		if (defined($currBlock)) { #add the last element
+			$line_ref->{'pd'} = $currBlock;
+			push @foundDevs, $line_ref;
 		}
 	}
 	else {
