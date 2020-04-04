@@ -66,7 +66,8 @@
   * check_adaptec_raid plugin
   * arcconf
   * sudoers entry for user nagios and arcconf
-    (example: nagios ALL=(root) NOPASSWD:/sbin/arcconf)
+    (example: nagios ALL=(root) NOPASSWD:/sbin/arcconf
+    If --ld-library-path is used, then the SETENV: flag must be added)
 * NRPE (optional): command definition
 * On the Icinga-server:
   * command definition
