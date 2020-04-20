@@ -79,6 +79,9 @@ sub displayUsage {
 	print "  [ -p <path> | --path <path>]
     Specifies the path to arcconf, per default uses the tool 'which' to get 
     the arcconf path.\n";
+	print "  [ --ld-library-path <path>]
+    Sets the LD_LIBRARY_PATH before running arcconf, this requires setting
+    the SETENV: flag in the sudoers entry";
 	print "  [ -z <0/1> | --ZMM <0/1> ]
     Check if a ZMM is present unless '-z 0' is defined. This ensures that for a
     given controller a ZMM must be present per default.\n";
@@ -845,7 +848,7 @@ sub getPerfString{
 }
 
 MAIN: {
-	my ($arcconf, $sudo, $noSudo, $version, $exitCode);
+	my ($arcconf, $sudo, $noSudo, $ldLibraryPath, $version, $exitCode);
 	# Create default sensor arrays and push them to status level
 	my @statusLevel_a ;
 	my $status_str = 'OK';
@@ -880,6 +883,7 @@ MAIN: {
 		'p|path=s' => \$arcconf,
 		'z|ZMM=i' => \$zmm,
 		'nosudo' => \$noSudo,
+		'ld-library-path=s' => \$ldLibraryPath,
 	))){
 		print $NAME . " Version: " . $VERSION ."\n";
 		displayUsage();
@@ -909,7 +913,12 @@ MAIN: {
 				exit(STATE_UNKNOWN);
 			}
 			if($> != 0){
-				$arcconf = $sudo.' '.$arcconf;
+				if(!defined($ldLibraryPath)){
+					$arcconf = $sudo.' '.$arcconf;
+				}
+				else{
+					$arcconf = $sudo.' LD_LIBRARY_PATH='.$ldLibraryPath.' '.$arcconf;
+				}
 			}
 		}
 	}
