@@ -474,9 +474,11 @@ sub getPDStatus{
 		}
 		if(exists($PD->{'Power State'})){
 			if($PD->{'Power State'} ne 'Full rpm'){
-				$status = 'Critical';
-				push @{$statusLevel_a[2]}, $PD->{'pd'}.'_Power_state';
-				$statusLevel_a[3]->{$PD->{'pd'}.'_Power_state'} = $PD->{'Power State'};
+				if($PD->{'State'} ne 'Pooled Hot-Spare'){
+					$status = 'Critical';
+					push @{$statusLevel_a[2]}, $PD->{'pd'}.'_Power_state';
+					$statusLevel_a[3]->{$PD->{'pd'}.'_Power_state'} = $PD->{'Power State'};
+				}
 			}
 		}
 		if(exists($PD->{'Failed logical device segments'})){
