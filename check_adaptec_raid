@@ -474,7 +474,7 @@ sub getPDStatus{
 		}
 		if(exists($PD->{'Power State'})){
 			if($PD->{'Power State'} ne 'Full rpm'){
-				if($PD->{'State'} ne 'Pooled Hot-Spare'){
+				if($PD->{'State'} ne 'Pooled Hot-Spare' && $PD->{'State'} ne 'Dedicated Hot-Spare'){
 					$status = 'Critical';
 					push @{$statusLevel_a[2]}, $PD->{'pd'}.'_Power_state';
 					$statusLevel_a[3]->{$PD->{'pd'}.'_Power_state'} = $PD->{'Power State'};
